@@ -67,7 +67,9 @@ export function useGame(mode: Mode, humanSide: Side = 'US', initialState?: GameS
           const a = botAction(h.cur, aiSide);
           return a ? push(h, h.cur, reduce(h.cur, a)) : h;
         });
-      }, 350);
+        // A deliberate pace (vs an instant snap) so the opponent's moves read as
+        // discrete board-game actions the animations can keep up with.
+      }, 700);
       return () => {
         if (timer.current) window.clearTimeout(timer.current);
       };

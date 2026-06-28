@@ -733,3 +733,110 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 }
 .menu > * { position: relative; z-index: 1; }
 .menu h1 { font-family: 'Big Shoulders Display', sans-serif; font-weight: 900; letter-spacing: 1px; }
+
+/* ============================================================================
+   Responsiveness animations — make moves (especially the opponent's) read as
+   discrete board-game actions rather than instant state changes.
+   ============================================================================ */
+
+/* Board: a brief flash on a country whenever its influence changes (yours or
+   the opponent's). The span is keyed by the influence values, so it re-mounts
+   and replays on every change. */
+.cb-flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: 4px;
+  background: rgba(255, 240, 200, 0.55);
+  animation: cbflash 620ms ease-out forwards;
+}
+.cb-flash.us { background: rgba(112, 184, 255, 0.5); }
+.cb-flash.ussr { background: rgba(255, 116, 109, 0.5); }
+@keyframes cbflash { 0% { opacity: 0.85; } 100% { opacity: 0; } }
+
+/* Center "card play" announcement — shows exactly what a player just played. */
+.play-announce {
+  position: fixed;
+  z-index: 60;
+  left: 50%;
+  top: 44%;
+  width: 210px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  text-align: center;
+  animation: announce 1.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.pa-label {
+  font-family: 'Big Shoulders Display', sans-serif;
+  font-weight: 900;
+  font-size: 17px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9);
+}
+.pa-label.us { color: var(--us-light); }
+.pa-label.ussr { color: var(--ussr-light); }
+.pa-card { filter: drop-shadow(0 20px 42px rgba(0, 0, 0, 0.6)); }
+@keyframes announce {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5) rotate(-6deg); }
+  10% { opacity: 1; transform: translate(-50%, -50%) scale(1.06) rotate(0); }
+  18% { transform: translate(-50%, -50%) scale(1); }
+  82% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -58%) scale(0.94); }
+}
+
+/* New-turn banner */
+.turn-banner {
+  position: fixed;
+  z-index: 61;
+  left: 0;
+  right: 0;
+  top: 40%;
+  text-align: center;
+  pointer-events: none;
+  font-family: 'Big Shoulders Display', sans-serif;
+  font-weight: 900;
+  font-size: clamp(40px, 8vw, 72px);
+  color: var(--accent);
+  letter-spacing: 2px;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.9);
+  animation: turnbanner 1.6s ease both;
+}
+@keyframes turnbanner {
+  0% { opacity: 0; transform: scale(0.7) translateY(10px); }
+  16% { opacity: 1; transform: scale(1) translateY(0); }
+  72% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.08); }
+}
+
+/* Tracks: VP bar slides, VP readout pops, DEFCON ladder flashes on change. */
+.vp-fill { transition: width 600ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+.vp-num { animation: vppop 280ms ease-out; }
+@keyframes vppop { 0% { transform: scale(1.35); } 100% { transform: scale(1); } }
+.defcon-ladder { animation: defconflash 650ms ease-out; }
+@keyframes defconflash { 0% { filter: brightness(2.3); } 100% { filter: brightness(1); } }
+
+/* Whoever must act gets a gentle pulse so the turn is obvious (incl. the AI). */
+.side-badge.acting { animation: actingpulse 1.7s ease-in-out infinite; }
+@keyframes actingpulse {
+  0%, 100% { box-shadow: 0 0 0 2px var(--accent), 0 6px 16px rgba(0, 0, 0, 0.3); }
+  50% { box-shadow: 0 0 0 2px var(--accent), 0 0 18px rgba(216, 179, 93, 0.65), 0 6px 16px rgba(0, 0, 0, 0.3); }
+}
+
+/* Click micro-interactions — tactile press feedback. */
+.exit:active:not(:disabled),
+.modes button:active:not(:disabled),
+.menu-buttons button:active,
+.hand-tabs button:active,
+.coach-nav button:active:not(:disabled),
+.board-zoom button:active { transform: translateY(1px) scale(0.97); }
+.card:active { transition-duration: 70ms; transform: translateY(-1px) scale(0.99); }
+
+@media (prefers-reduced-motion: reduce) {
+  .cb-flash, .defcon-ladder, .vp-num, .side-badge.acting { animation: none; }
+  .vp-fill { transition: none; }
+  .play-announce { animation: motionfade 1.7s linear both; }
+  .turn-banner { animation: motionfade 1.6s linear both; }
+}
+@keyframes motionfade { 0%, 88% { opacity: 1; } 100% { opacity: 0; } }
