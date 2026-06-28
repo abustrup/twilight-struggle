@@ -1,0 +1,4 @@
+# 512x512 duotone card illustrations
+# Drop files here named by card id, e.g. nato.png, destalinization.png.
+# Until a file exists, a geometric motif stands in (see CardFace in src/ui/components.tsx).
+# Filenames + prompts: docs/cards-art.md / docs/cards-art.json

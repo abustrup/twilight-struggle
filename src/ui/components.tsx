@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type FocusEvent as ReactFocusEvent } from 'react';
+import { useMemo, useState, type CSSProperties, type ReactElement, type MouseEvent as ReactMouseEvent, type FocusEvent as ReactFocusEvent } from 'react';
 import type { GameState } from '../engine/state/types';
 import type { Side, Affiliation } from '../engine/data/cards';
 import { getCard, isScoring, CHINA_CARD_ID } from '../engine/data/cards';
@@ -51,30 +51,46 @@ const FIELD: Record<string, string> = {
   as: 'rgba(244,185,94,0.30)', ca: 'rgba(220,234,168,0.32)', sa: 'rgba(170,203,132,0.32)',
 };
 
+// ---------------- Thematic card art (from the Art Bible handoff) ----------------
+// Card art lives in /public/cards/<id>.png at 512x512; until a file exists a
+// geometric duotone Motif stands in, so art can ship incrementally.
+type Kind = 'us' | 'ussr' | 'neutral' | 'scoring' | 'china';
+type MotifKind =
+  | 'star' | 'sickle' | 'rings' | 'globe' | 'grid'
+  | 'bars' | 'burst' | 'cross' | 'flag' | 'chevron' | 'wall';
+
+/** Points for an n=5 star, centred on (cx,cy). */
+function starPoints(cx: number, cy: number, ro: number, ri: number): string {
+  const p: string[] = [];
+  for (let i = 0; i < 10; i++) {
+    const r = i % 2 ? ri : ro;
+    const a = (Math.PI / 5) * i - Math.PI / 2;
+    p.push(`${(cx + r * Math.cos(a)).toFixed(1)},${(cy + r * Math.sin(a)).toFixed(1)}`);
+  }
+  return p.join(' ');
+}
+
 // ---------------- Superpower / neutral emblem (used in cards + status bar) ----------------
 export function Emblem({ side, size = 26 }: { side: Affiliation; size?: number }) {
-  if (side === 'USSR') {
-    return (
-      <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden>
-        <circle cx="16" cy="16" r="15" fill="#7d1410" />
-        <path d="M9 22c-1-4 2-7 6-7 1 0 1-1 0-1-3 0-6 2-6 5l-1-6 2 1c0-3 3-5 6-4 2 .6 3 3 2 5l3-2-1 3c2-1 4 1 3 3l-2-1c0 2-2 3-4 2" fill="#f4d878" />
-        <path d="M19 8l1.2 2.5L23 11l-2 2 .5 2.7L19 14l-2.4 1.7.5-2.7-2-2 2.8-.5z" fill="#f4d878" />
-      </svg>
-    );
-  }
-  if (side === 'US') {
-    return (
-      <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden>
-        <circle cx="16" cy="16" r="15" fill="#143a63" />
-        <path d="M16 5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L16 24.3l-5.2 2.8 1-5.8-4.3-4.1 5.9-.9z" fill="#eaf2ff" />
-      </svg>
-    );
-  }
+  const ring = side === 'US' ? '#143a63' : side === 'USSR' ? '#7d1410' : '#4a4f57';
+  const glyph = side === 'US' ? '#eef4ff' : side === 'USSR' ? '#f4d878' : '#e8e2d2';
   return (
-    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden>
-      <circle cx="16" cy="16" r="15" fill="#4a4f57" />
-      <circle cx="16" cy="16" r="9" fill="none" stroke="#e8e2d2" strokeWidth="1.6" />
-      <path d="M7 16h18M16 7v18M9.5 10.5c4 3 9 3 13 0M9.5 21.5c4-3 9-3 13 0" fill="none" stroke="#e8e2d2" strokeWidth="1.2" />
+    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden className="ts-emblem">
+      <circle cx="16" cy="16" r="15" fill={ring} />
+      <circle cx="16" cy="16" r="13" fill="none" stroke={glyph} strokeWidth="0.5" opacity="0.45" />
+      {side === 'USSR' ? (
+        <>
+          <path d="M9 22c-1-4 2-7 6-7 1 0 1-1 0-1-3 0-6 2-6 5l-1-6 2 1c0-3 3-5 6-4 2 .6 3 3 2 5l3-2-1 3c2-1 4 1 3 3l-2-1c0 2-2 3-4 2" fill={glyph} />
+          <path d="M19 8l1.2 2.5L23 11l-2 2 .5 2.7L19 14l-2.4 1.7.5-2.7-2-2 2.8-.5z" fill={glyph} />
+        </>
+      ) : side === 'Neutral' ? (
+        <>
+          <circle cx="16" cy="16" r="8.5" fill="none" stroke={glyph} strokeWidth="1.4" />
+          <path d="M7.5 16h17M16 7.5v17M9.6 10.8c4 2.6 8.8 2.6 12.8 0M9.6 21.2c4-2.6 8.8-2.6 12.8 0" fill="none" stroke={glyph} strokeWidth="1.1" />
+        </>
+      ) : (
+        <polygon points={starPoints(16, 16, 9.6, 3.9)} fill={glyph} />
+      )}
     </svg>
   );
 }
@@ -226,30 +242,228 @@ function HqLabel({ side, box }: { side: Side; box: { x: number; y: number; w: nu
   );
 }
 
-// ---------------- Thematic full card face (used for hover preview + selected card) ----------------
-export function CardFace({ id, className = '' }: { id: string; className?: string }) {
+// ---------------- Thematic two-sided card face (hover preview + selected card) ----------------
+/** Fallback subject per card id, used until the 512x512 illustration ships.
+    Generated from cards-art.json — keep in sync with the art manifest. */
+const CARD_MOTIF: Record<string, MotifKind> = {
+  'asiascoring': 'globe', 'europescoring': 'globe', 'mideastscoring': 'globe',
+  'duckandcover': 'rings', 'fiveyearplan': 'bars', 'thechinacard': 'star',
+  'socialistgovs': 'sickle', 'fidel': 'star', 'vietnamrevolts': 'burst',
+  'blockade': 'wall', 'koreanwar': 'chevron', 'romanianabdication': 'star',
+  'arabisraeliwar': 'chevron', 'comecon': 'grid', 'nasser': 'star',
+  'warsawpact': 'grid', 'degaulle': 'flag', 'capturednazi': 'burst',
+  'trumandoctrine': 'globe', 'olympicgames': 'burst', 'nato': 'star',
+  'independentreds': 'star', 'marshallplan': 'bars', 'indopakiwar': 'chevron',
+  'containment': 'rings', 'ciacreated': 'cross', 'usjapan': 'flag',
+  'suezcrisis': 'chevron', 'easteurunrest': 'burst', 'decolonization': 'globe',
+  'redscare': 'cross', 'unintervention': 'globe', 'destalinization': 'bars',
+  'nucleartestban': 'rings', 'formosan': 'flag', 'brushwar': 'chevron',
+  'camscoring': 'globe', 'seascoring': 'globe', 'armsrace': 'bars',
+  'cubanmissile': 'rings', 'nuclearsubs': 'rings', 'quagmire': 'cross',
+  'salt': 'rings', 'beartrap': 'cross', 'summit': 'grid', 'worrying': 'burst',
+  'junta': 'chevron', 'kitchendebates': 'grid', 'missileenvy': 'bars',
+  'wewillburyyou': 'burst', 'brezhnev': 'star', 'portugalempire': 'globe',
+  'southafricanunrest': 'burst', 'allende': 'star', 'willybrandt': 'flag',
+  'muslimrevolution': 'burst', 'abm': 'rings', 'culturalrevolution': 'star',
+  'flowerpower': 'burst', 'u2incident': 'cross', 'opec': 'bars',
+  'lonegunman': 'cross', 'colonialrearguards': 'globe', 'panamacanal': 'rings',
+  'campdavid': 'flag', 'puppetgovs': 'grid', 'grainsales': 'bars',
+  'johnpaul': 'burst', 'deathsquads': 'cross', 'oasfounded': 'star',
+  'nixonchina': 'star', 'sadatexpels': 'flag', 'shuttlediplomacy': 'globe',
+  'voiceofamerica': 'burst', 'liberationtheology': 'star', 'ussuri': 'chevron',
+  'asknot': 'star', 'allianceforprogress': 'bars', 'africascoring': 'globe',
+  'onesmallstep': 'burst', 'sascoring': 'globe', 'iranianhostage': 'cross',
+  'ironlady': 'globe', 'reaganlibya': 'burst', 'starwars': 'rings',
+  'northseaoil': 'bars', 'reformer': 'star', 'marinebarracks': 'burst',
+  'kal007': 'cross', 'glasnost': 'burst', 'ortega': 'star', 'terrorism': 'burst',
+  'irancontra': 'grid', 'chernobyl': 'rings', 'debtcrisis': 'bars',
+  'teardown': 'wall', 'evilempire': 'star', 'aldrichames': 'cross',
+  'pershing2': 'rings', 'wargames': 'cross', 'solidarity': 'flag',
+  'iraniraqwar': 'chevron', 'defectors': 'cross', 'optional-cambridgefive': 'cross',
+  'optional-specialrelationship': 'flag', 'optional-norad': 'rings',
+  'optional-che': 'star', 'optional-ourmanintehran': 'cross',
+  'optional-yuriandsamantha': 'globe', 'optional-awacs': 'rings',
+};
+
+function Motif({ kind }: { kind: MotifKind }) {
+  const common = { viewBox: '0 0 100 100', className: 'ts-motif', 'aria-hidden': true } as const;
+  switch (kind) {
+    case 'star':
+      return <svg {...common}><polygon points={starPoints(50, 50, 46, 19)} fill="currentColor" opacity={0.92} /></svg>;
+    case 'sickle':
+      return (
+        <svg viewBox="0 0 32 32" className="ts-motif" aria-hidden>
+          <path d="M9 22c-1-4 2-7 6-7 1 0 1-1 0-1-3 0-6 2-6 5l-1-6 2 1c0-3 3-5 6-4 2 .6 3 3 2 5l3-2-1 3c2-1 4 1 3 3l-2-1c0 2-2 3-4 2" fill="currentColor" />
+          <path d="M19 8l1.2 2.5L23 11l-2 2 .5 2.7L19 14l-2.4 1.7.5-2.7-2-2 2.8-.5z" fill="currentColor" />
+        </svg>
+      );
+    case 'rings':
+      return (
+        <svg {...common}>
+          {[42, 30, 18].map((r) => <circle key={r} cx={50} cy={50} r={r} fill="none" stroke="currentColor" strokeWidth={2.6} opacity={0.85} />)}
+          <line x1={50} y1={2} x2={50} y2={98} stroke="currentColor" strokeWidth={1.3} opacity={0.55} />
+          <line x1={2} y1={50} x2={98} y2={50} stroke="currentColor" strokeWidth={1.3} opacity={0.55} />
+          <circle cx={50} cy={50} r={4.5} fill="currentColor" />
+        </svg>
+      );
+    case 'globe':
+      return (
+        <svg {...common}>
+          <circle cx={50} cy={50} r={44} fill="none" stroke="currentColor" strokeWidth={2.4} />
+          <ellipse cx={50} cy={50} rx={44} ry={17} fill="none" stroke="currentColor" strokeWidth={1.5} opacity={0.75} />
+          <ellipse cx={50} cy={50} rx={44} ry={33} fill="none" stroke="currentColor" strokeWidth={1.1} opacity={0.5} />
+          <ellipse cx={50} cy={50} rx={17} ry={44} fill="none" stroke="currentColor" strokeWidth={1.5} opacity={0.75} />
+          <ellipse cx={50} cy={50} rx={33} ry={44} fill="none" stroke="currentColor" strokeWidth={1.1} opacity={0.5} />
+          <line x1={6} y1={50} x2={94} y2={50} stroke="currentColor" strokeWidth={1.6} opacity={0.8} />
+          <line x1={50} y1={6} x2={50} y2={94} stroke="currentColor" strokeWidth={1.6} opacity={0.8} />
+        </svg>
+      );
+    case 'grid':
+      return (
+        <svg {...common}>
+          {Array.from({ length: 36 }, (_, i) => {
+            const r = Math.floor(i / 6), c = i % 6;
+            return <circle key={i} cx={13 + c * 14.8} cy={13 + r * 14.8} r={3.6} fill="currentColor" opacity={0.8} />;
+          })}
+        </svg>
+      );
+    case 'bars':
+      return <svg {...common}>{[46, 72, 34, 84, 58].map((h, i) => <rect key={i} x={7 + i * 18} y={92 - h} width={12} height={h} rx={1} fill="currentColor" opacity={0.86} />)}</svg>;
+    case 'burst':
+      return (
+        <svg {...common}>
+          {Array.from({ length: 12 }, (_, i) => {
+            const a = (Math.PI * 2 / 12) * i;
+            return <line key={i} x1={50} y1={50} x2={+(50 + 47 * Math.cos(a)).toFixed(1)} y2={+(50 + 47 * Math.sin(a)).toFixed(1)} stroke="currentColor" strokeWidth={2.3} opacity={0.82} />;
+          })}
+          <circle cx={50} cy={50} r={9} fill="currentColor" />
+        </svg>
+      );
+    case 'cross':
+      return (
+        <svg {...common}>
+          <circle cx={50} cy={50} r={40} fill="none" stroke="currentColor" strokeWidth={2} opacity={0.5} />
+          <line x1={50} y1={4} x2={50} y2={96} stroke="currentColor" strokeWidth={2.6} />
+          <line x1={4} y1={50} x2={96} y2={50} stroke="currentColor" strokeWidth={2.6} />
+          <circle cx={50} cy={50} r={8} fill="none" stroke="currentColor" strokeWidth={2.6} />
+        </svg>
+      );
+    case 'flag':
+      return (
+        <svg {...common}>
+          <line x1={27} y1={6} x2={27} y2={94} stroke="currentColor" strokeWidth={4} opacity={0.9} />
+          <circle cx={27} cy={7} r={4} fill="currentColor" />
+          <rect x={27} y={14} width={50} height={24} fill="currentColor" opacity={0.86} />
+          <rect x={27} y={44} width={34} height={9} fill="currentColor" opacity={0.5} />
+        </svg>
+      );
+    case 'chevron':
+      return (
+        <svg {...common}>
+          {[0, 1, 2].map((i) => {
+            const y = 28 + i * 19;
+            return <polyline key={i} points={`18,${y} 50,${y + 20} 82,${y}`} fill="none" stroke="currentColor" strokeWidth={6} strokeLinecap="round" strokeLinejoin="round" opacity={0.85} />;
+          })}
+        </svg>
+      );
+    case 'wall': {
+      const out: ReactElement[] = [];
+      [14, 31, 48, 65, 82].forEach((y, r) => {
+        const off = r % 2 ? -11 : 0;
+        for (let x = off; x < 100; x += 22) {
+          if (r >= 1 && r <= 3 && x + 10 > 42 && x + 10 < 60) continue; // a breach in the wall
+          out.push(<rect key={`${r}_${x}`} x={x + 1} y={y} width={20} height={15} rx={1} fill="currentColor" opacity={0.8} />);
+        }
+      });
+      return <svg {...common}>{out}</svg>;
+    }
+    default:
+      return <svg {...common} />;
+  }
+}
+
+function cardKind(c: ReturnType<typeof getCard>): Kind {
+  if (c.id === CHINA_CARD_ID) return 'china';
+  if (c.scoring) return 'scoring';
+  return c.side === 'US' ? 'us' : c.side === 'USSR' ? 'ussr' : 'neutral';
+}
+
+/**
+ * Thematic, two-sided event card.
+ *   Front — faction duotone art slot (/public/cards/<id>.png, falling back to a
+ *           geometric motif) + ops medallion + letterpress title.
+ *   Back  — full rules text on a faction header. Click flips between them.
+ * Pass `flippable={false}` for a static, front-only preview (hover tooltip).
+ */
+export function CardFace({
+  id,
+  className = '',
+  flippable = true,
+}: {
+  id: string;
+  className?: string;
+  flippable?: boolean;
+}) {
+  const [flipped, setFlipped] = useState(false);
   const c = getCard(id);
-  const sc = isScoring(id);
-  const china = id === CHINA_CARD_ID;
-  const sideClass = c.side === 'US' ? 'us' : c.side === 'USSR' ? 'ussr' : 'neutral';
-  const opsLabel = sc ? '★' : String(c.ops);
-  const banner = sc ? 'Scoring Card' : c.side === 'Neutral' ? 'Neutral Event' : `${c.side} Event`;
+  const kind = cardKind(c);
+  const ops = isScoring(id) ? '★' : String(c.ops);
+  const period = `#${c.number} · ${c.war.toUpperCase()} WAR${c.starred ? ' · ★' : ''}${c.optional ? ' · OPT' : ''}`;
+  const banner = c.scoring
+    ? 'Scoring Card'
+    : kind === 'china'
+      ? 'Special · China'
+      : c.side === 'Neutral'
+        ? 'Neutral Event'
+        : `${c.side} Event`;
+  const artSrc = `${import.meta.env.BASE_URL}cards/${id}.png`;
+
   return (
-    <div className={`card-face side-${sideClass}${sc ? ' scoring' : ''} ${className}`}>
-      <div className="cf-head">
-        <span className="cf-ops" title="Operations value">{opsLabel}</span>
-        <span className="cf-period">
-          {c.war} War{c.optional ? ' · Optional' : ''}
-          {c.starred && <span className="cf-removed" title="Removed from the game after the event"> · ★ once</span>}
-        </span>
+    <div
+      className={`tsf ${flipped ? 'is-flipped' : ''} ${className}`.trim()}
+      data-kind={kind}
+      role={flippable ? 'button' : undefined}
+      tabIndex={flippable ? 0 : undefined}
+      aria-pressed={flippable ? flipped : undefined}
+      aria-label={flippable ? `${c.name} — press to flip ${flipped ? 'to the front' : 'for its rules'}` : undefined}
+      onClick={flippable ? () => setFlipped((f) => !f) : undefined}
+      onKeyDown={flippable ? (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setFlipped((f) => !f); }
+      } : undefined}
+    >
+      <div className="tsf-inner">
+        {/* Back is painted first so the opaque front always wins flat captures. */}
+        <div className="tsf-face tsf-back">
+          <div className="tsf-back-head">
+            <span className="tsf-back-ops">{ops}</span>
+            <div>
+              <div className="tsf-back-name">{c.name}</div>
+              <div className="tsf-back-period">{period}</div>
+            </div>
+          </div>
+          <div className="tsf-rules">{c.text}</div>
+          <div className="tsf-back-banner">{banner}</div>
+        </div>
+
+        <div className="tsf-face tsf-front">
+          <div className="tsf-slot">
+            <Motif kind={CARD_MOTIF[id] ?? 'globe'} />
+            <img
+              className="tsf-img"
+              src={artSrc}
+              alt=""
+              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+            />
+            <span className="tsf-ops">{ops}</span>
+            <span className="tsf-period">{period}</span>
+          </div>
+          <div className="tsf-plate">
+            <div className="tsf-rule" />
+            <div className="tsf-title">{c.name}</div>
+            <div className="tsf-banner">{banner}</div>
+          </div>
+        </div>
       </div>
-      <div className={`cf-art art-${sideClass}`}>
-        <Emblem side={c.side} size={54} />
-        <span className="cf-num">{china ? '#6' : `#${c.number}`}</span>
-      </div>
-      <div className="cf-title">{c.name}</div>
-      <div className="cf-banner">{banner}</div>
-      <div className="cf-text">{c.text}</div>
     </div>
   );
 }

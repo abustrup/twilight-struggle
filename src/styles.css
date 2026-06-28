@@ -54,23 +54,8 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   align-items: center;
   overflow: hidden;
 }
-.menu::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: var(--map-image) center / cover no-repeat;
-  opacity: 0.34;
-  filter: saturate(0.82) contrast(1.08);
-}
-.menu::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(90deg, rgba(10, 16, 22, 0.92), rgba(15, 18, 22, 0.68) 46%, rgba(52, 12, 10, 0.86)),
-    radial-gradient(circle at 50% 38%, rgba(216, 179, 93, 0.18), transparent 38%);
-}
-.menu > * { position: relative; z-index: 1; }
+/* .menu::before / ::after / > * are defined in the appended "Menu key art"
+   block at the bottom of this file (faction-split hero from the Art Bible). */
 .menu h1 {
   font-size: clamp(44px, 8vw, 82px);
   line-height: 0.9;
@@ -517,59 +502,33 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .card-name { font-size: 12.5px; font-weight: 900; line-height: 1.16; }
 .card-tag { font-size: 10px; font-weight: 700; color: #6a5a30; text-transform: uppercase; letter-spacing: 0.4px; }
 
-/* ---------- Thematic card face (hover preview + panel) ---------- */
-.card-face {
-  border-radius: 9px;
-  overflow: hidden;
-  color: #1a140c;
-  background: linear-gradient(180deg, #efe7d2, #d9cdab);
-  border: 2px solid #4e432d;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
-  display: flex;
-  flex-direction: column;
-}
-.cf-head { display: flex; align-items: center; gap: 9px; padding: 6px 9px; color: #f3ead4; font-weight: 800; }
-.card-face.side-us .cf-head { background: linear-gradient(180deg, #2f6fae, #1c4f86); }
-.card-face.side-ussr .cf-head { background: linear-gradient(180deg, #b8392f, #8c241c); }
-.card-face.side-neutral .cf-head { background: linear-gradient(180deg, #5b6066, #3a3e44); }
-.card-face.scoring .cf-head { background: linear-gradient(180deg, #6a5a30, #463a1c); }
-.cf-ops {
-  width: 26px; height: 26px; border-radius: 50%;
-  background: #17140d; color: #f4d878;
-  display: inline-flex; align-items: center; justify-content: center;
-  font-size: 14px; font-weight: 950; border: 2px solid rgba(244, 216, 120, 0.7); flex: 0 0 auto;
-}
-.cf-period { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.25; }
-.cf-removed { color: #ffd98a; }
-.cf-art {
-  position: relative; height: 60px;
-  display: flex; align-items: center; justify-content: center;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.18);
-}
-.cf-art.art-us { background: radial-gradient(circle at 50% 42%, rgba(47, 111, 174, 0.28), rgba(47, 111, 174, 0.05)); }
-.cf-art.art-ussr { background: radial-gradient(circle at 50% 42%, rgba(184, 57, 47, 0.3), rgba(184, 57, 47, 0.05)); }
-.cf-art.art-neutral { background: radial-gradient(circle at 50% 42%, rgba(90, 96, 102, 0.28), rgba(90, 96, 102, 0.05)); }
-.cf-num { position: absolute; right: 8px; bottom: 4px; font-size: 11px; font-weight: 900; color: rgba(0, 0, 0, 0.4); }
-.cf-title { padding: 7px 10px 3px; font-size: 15px; font-weight: 900; line-height: 1.15; }
-.cf-banner { padding: 0 10px 6px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #6a5a30; }
-.cf-text {
-  padding: 8px 10px 10px;
-  font-size: 11.5px;
-  line-height: 1.45;
-  color: #2a2317;
-  background: rgba(255, 255, 255, 0.4);
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.card-face.panel-card { margin: 8px 0 4px; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35); }
-.card-face.panel-card .cf-art { height: 44px; }
-.card-face.panel-card .cf-text { max-height: 150px; overflow: auto; }
+/* ---------- CardFace context sizing ----------
+   The thematic two-sided card itself (.tsf) is styled in the appended
+   "Twilight Struggle — thematic CardFace" block at the bottom of this file.
+   These rules just size it for the hover preview and the action panel. */
+.tsf.preview { width: 100%; }
+.tsf.panel-card { max-width: 208px; margin: 8px 0 6px; }
 
 /* max-height keeps the preview from growing past the top of the viewport (and
    over the header) on short / landscape windows; on normal heights the natural
    card height is well under this cap so nothing is clipped. */
-.card-preview { position: fixed; z-index: 50; pointer-events: none; max-height: calc(100vh - 96px); overflow: hidden; border-radius: 9px; animation: cardpop 120ms ease-out; }
+.card-preview { position: fixed; z-index: 50; pointer-events: none; max-height: calc(100vh - 96px); overflow: hidden; animation: cardpop 120ms ease-out; }
 @keyframes cardpop { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+/* Rules text under the thematic card front, so hovering (or keyboard-focusing) a
+   card still shows its full effect — the front face itself only carries art. */
+.card-preview-rules {
+  margin-top: 7px;
+  padding: 9px 11px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #efe7d2, #ddd0b0);
+  border: 1px solid rgba(40, 30, 15, 0.4);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+  font-family: 'Spectral', serif;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #2c2419;
+}
+.tsf:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 
 /* ---------- Tutorial ---------- */
 .tutorial .sidebar.tut-coach { width: 372px; min-width: 372px; }
@@ -630,3 +589,128 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .hand-area { padding: 8px; }
   .card { flex-basis: 148px; }
 }
+
+/* ===========================================================================
+   Appended from handoff/implementation/cardface.css (Art Bible drop-in).
+   Pairs with the Emblem + CardFace in src/ui/components.tsx.
+   =========================================================================== */
+/* ============================================================================
+   Twilight Struggle — thematic CardFace + faction emblem + menu key art
+   ----------------------------------------------------------------------------
+   Append to src/styles.css (or @import this file).  Pairs with
+   components.cardface.tsx.  Reuses the existing :root tokens where it can
+   (--accent gold, etc) and adds per-faction tokens on the card itself.
+
+   Requires three fonts — add to index.html <head> or @import atop styles.css:
+   @import url('https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Spectral:ital,wght@0,400;0,500;1,400&family=Space+Mono:wght@400;700&display=swap');
+   ============================================================================ */
+
+/* ---------------------------------------------------- emblem + motif ---- */
+.ts-emblem { display: block; filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5)); }
+.ts-motif  { width: 68%; height: 68%; display: block; filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.45)); }
+
+/* ---------------------------------------------------- the event card ---- */
+.tsf {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 5 / 7;
+  perspective: 1300px;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* per-faction tokens — overridden by [data-kind] below */
+  --field: linear-gradient(155deg, #4a4031, #221d14);
+  --tone: #c2ae87;
+  --accent: #6f5f3e;
+  --head: linear-gradient(180deg, #5b6066, #3a3e44);
+  --paper: var(--paper, #e8dfc9);
+}
+.tsf:hover { transform: translateY(-9px); }
+.tsf[data-kind="us"]      { --field: linear-gradient(155deg, #1d3f5d, #0b1d2d); --tone: #7ba6c9; --accent: #1d5a8f; --head: linear-gradient(180deg, #2f6fae, #1c4f86); }
+.tsf[data-kind="ussr"]    { --field: linear-gradient(155deg, #591a12, #270a07); --tone: #d77b6c; --accent: #a32a22; --head: linear-gradient(180deg, #b8392f, #8c241c); }
+.tsf[data-kind="neutral"] { --field: linear-gradient(155deg, #4a4031, #221d14); --tone: #c2ae87; --accent: #6f5f3e; --head: linear-gradient(180deg, #5b6066, #3a3e44); }
+.tsf[data-kind="scoring"] { --field: linear-gradient(155deg, #4c3c1a, #241a08); --tone: #e3c478; --accent: #9a7a2a; --head: linear-gradient(180deg, #6a5a30, #463a1c); }
+.tsf[data-kind="china"]   { --field: linear-gradient(155deg, #601810, #2c0a06); --tone: #ecc976; --accent: #a83218; --head: linear-gradient(180deg, #8c241c, #5a160f); }
+
+.tsf-inner { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.tsf.is-flipped .tsf-inner { transform: rotateY(180deg); }
+
+.tsf-face {
+  position: absolute; inset: 0;
+  backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  border-radius: 12px; overflow: hidden;
+  background: var(--paper, #e8dfc9);
+  border: 1px solid rgba(40, 30, 15, 0.4);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.5), 0 2px 0 rgba(0, 0, 0, 0.35);
+  display: flex; flex-direction: column;
+}
+.tsf-front { padding: 9px; gap: 7px; }
+
+/* ---- art slot ---- */
+.tsf-slot {
+  position: relative; flex: 1; border-radius: 6px; overflow: hidden;
+  background: var(--field); color: var(--tone);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.4), inset 0 0 70px rgba(0, 0, 0, 0.5);
+  display: flex; align-items: center; justify-content: center;
+}
+.tsf-slot::before { /* halftone screen */
+  content: ""; position: absolute; inset: 0; mix-blend-mode: overlay;
+  background-image: radial-gradient(circle, rgba(255, 250, 235, 0.16) 0.7px, transparent 1.5px);
+  background-size: 5px 5px;
+}
+.tsf-slot::after { /* aged paper grain */
+  content: ""; position: absolute; inset: -15%; mix-blend-mode: multiply; opacity: 0.5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+}
+.tsf-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.tsf-ops {
+  position: absolute; top: 9px; left: 9px; width: 42px; height: 42px; border-radius: 50%;
+  background: radial-gradient(circle at 38% 30%, #2d2718, #14110a);
+  border: 2px solid var(--tone); box-shadow: 0 3px 9px rgba(0, 0, 0, 0.55);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Big Shoulders Display', sans-serif; font-weight: 900; font-size: 25px; color: #f4d878;
+}
+.tsf-period {
+  position: absolute; top: 11px; right: 10px; max-width: 60%; text-align: right;
+  font-family: 'Space Mono', monospace; font-size: 8.5px; letter-spacing: 0.5px; line-height: 1.3;
+  color: rgba(245, 238, 214, 0.85); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+/* ---- title plate ---- */
+.tsf-plate { padding: 1px 2px 2px; }
+.tsf-rule  { height: 2px; background: var(--accent); opacity: 0.85; margin-bottom: 5px; border-radius: 1px; }
+.tsf-title { font-family: 'Big Shoulders Display', sans-serif; font-weight: 800; font-size: 19px; line-height: 0.95; color: #241c12; letter-spacing: 0.2px; text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35); }
+.tsf-banner { font-family: 'Space Mono', monospace; font-size: 8.5px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent); margin-top: 3px; }
+
+/* ---- back / rules ---- */
+.tsf-back { transform: rotateY(180deg); }
+.tsf-back-head { background: var(--head); padding: 9px 11px; display: flex; align-items: center; gap: 9px; }
+.tsf-back-ops { width: 31px; height: 31px; border-radius: 50%; background: #14110a; border: 2px solid rgba(244, 216, 120, 0.7); display: flex; align-items: center; justify-content: center; font-family: 'Big Shoulders Display', sans-serif; font-weight: 900; font-size: 17px; color: #f4d878; flex: 0 0 auto; }
+.tsf-back-name { font-family: 'Big Shoulders Display', sans-serif; font-weight: 800; font-size: 17px; color: #f6eed7; line-height: 1; }
+.tsf-back-period { font-family: 'Space Mono', monospace; font-size: 8px; letter-spacing: 0.5px; color: rgba(246, 238, 215, 0.82); text-transform: uppercase; margin-top: 3px; }
+.tsf-rules { padding: 12px 13px; flex: 1; overflow: auto; font-family: 'Spectral', serif; font-size: 12.5px; line-height: 1.5; color: #2c2419; }
+.tsf-back-banner { padding: 7px 13px; font-family: 'Space Mono', monospace; font-size: 8px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--accent); border-top: 1px solid rgba(40, 30, 15, 0.18); }
+
+/* ============================================================================
+   Menu key art — desaturated world map split blue (US) / red (USSR), a gold
+   spotlight and dark overlay so big uppercase TWILIGHT STRUGGLE reads on top.
+   Merge into the existing .menu rules in styles.css (these replace the two
+   pseudo-elements there).  Add the gold centre seam as a real element if you
+   want it (see Art Bible hero), or via an extra ::after layer.
+   ============================================================================ */
+.menu::before { /* world map, desaturated and dimmed */
+  content: ""; position: absolute; inset: 0;
+  background: var(--map-image) center / cover no-repeat;
+  filter: saturate(0.16) contrast(1.06) brightness(0.62);
+}
+.menu::after { /* faction split + gold spotlight + darken */
+  content: ""; position: absolute; inset: 0;
+  background:
+    linear-gradient(90deg, rgba(20, 54, 86, 0.88) 0%, rgba(20, 42, 64, 0.40) 36%, transparent 50%),
+    linear-gradient(270deg, rgba(112, 28, 22, 0.88) 0%, rgba(82, 20, 16, 0.40) 36%, transparent 50%),
+    radial-gradient(circle at 50% 40%, rgba(216, 179, 93, 0.16), transparent 44%),
+    linear-gradient(180deg, rgba(8, 10, 14, 0.5), rgba(8, 10, 14, 0.8));
+}
+.menu > * { position: relative; z-index: 1; }
+.menu h1 { font-family: 'Big Shoulders Display', sans-serif; font-weight: 900; letter-spacing: 1px; }
