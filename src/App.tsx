@@ -1,7 +1,8 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useGame, type Mode } from './ui/useGame';
 import { Tracks, Board, Hand, Log, SideBadge, CardFace, PileView, startInf } from './ui/components';
 import { Tutorial } from './ui/Tutorial';
+import { playSound, isMuted, toggleMuted, onMuteChange } from './ui/sound';
 import { clearStoredSave, loadFromStorage, saveToStorage, type RestoredSave } from './ui/persistence';
 import type { Side } from './engine/data/cards';
 import { getCard, isScoring } from './engine/data/cards';
@@ -16,6 +17,26 @@ import type { GameState } from './engine/state/types';
 type OpType = 'influence' | 'coup' | 'realign' | 'space';
 type HoverState = { id: string; rect: DOMRect } | null;
 type HandTab = 'hand' | 'discard' | 'removed';
+
+function useMuted(): boolean {
+  const [m, setM] = useState(isMuted());
+  useEffect(() => onMuteChange(setM), []);
+  return m;
+}
+
+function SoundButton() {
+  const muted = useMuted();
+  return (
+    <button
+      className="exit snd"
+      title={muted ? 'Sound off — click to enable' : 'Sound on — click to mute'}
+      aria-label={muted ? 'Unmute sound' : 'Mute sound'}
+      onClick={() => { toggleMuted(); playSound('ui'); }}
+    >
+      {muted ? '🔇' : '🔊'}
+    </button>
+  );
+}
 
 export function App() {
   const [mode, setMode] = useState<Mode | null>(null);
@@ -73,11 +94,11 @@ function Menu({
       <h1>Twilight Struggle</h1>
       <p className="subtitle">The Cold War 1945–1989</p>
       <div className="menu-buttons">
-        <button className="primary" onClick={onTutorial}>▶ How to Play — Tutorial</button>
-        {storedSave && <button onClick={onResume}>Continue Saved Game</button>}
-        <button onClick={() => onPick('hotseat', 'US')}>Hotseat (2 players)</button>
-        <button onClick={() => onPick('vsAI', 'US')}>Play vs AI – as US</button>
-        <button onClick={() => onPick('vsAI', 'USSR')}>Play vs AI – as USSR</button>
+        <button className="primary" onClick={() => { playSound('ui'); onTutorial(); }}>▶ How to Play — Tutorial</button>
+        {storedSave && <button onClick={() => { playSound('ui'); onResume(); }}>Continue Saved Game</button>}
+        <button onClick={() => { playSound('ui'); onPick('hotseat', 'US'); }}>Hotseat (2 players)</button>
+        <button onClick={() => { playSound('ui'); onPick('vsAI', 'US'); }}>Play vs AI – as US</button>
+        <button onClick={() => { playSound('ui'); onPick('vsAI', 'USSR'); }}>Play vs AI – as USSR</button>
       </div>
       <div className="menu-note">
         New to the game? Start with the <b>Tutorial</b> — it walks you through the
@@ -103,7 +124,7 @@ export function CardPreview({ id, rect }: { id: string; rect: DOMRect }) {
 }
 
 function Game({ mode, humanSide, initialState, onExit }: { mode: Mode; humanSide: Side; initialState?: GameState; onExit: () => void }) {
-  const { state, dispatch, perspective, aiSide, restart } = useGame(mode, humanSide, initialState);
+  const { state, dispatch, perspective, aiSide, restart, undo, canUndo, gameId } = useGame(mode, humanSide, initialState);
 
   const [selCard, setSelCard] = useState<string | null>(null);
   const [opType, setOpType] = useState<OpType | null>(null);
@@ -116,10 +137,44 @@ function Game({ mode, humanSide, initialState, onExit }: { mode: Mode; humanSide
   const p = state.pending;
   const myTurn = state.awaiting === perspective && !state.over;
   const budget = p?.amount ?? 0;
+  const sideKey: 'us' | 'ussr' = perspective === 'US' ? 'us' : 'ussr';
 
   useEffect(() => {
     saveToStorage(state, mode, humanSide);
   }, [state, mode, humanSide]);
+
+  // Live influence shown on the board = committed state + pending placements,
+  // so the country number/control updates the instant you click (before Confirm).
+  const displayCountries = useMemo(() => {
+    if (!placements.length) return state.countries;
+    const copy: Record<string, { us: number; ussr: number }> = {};
+    for (const k in state.countries) copy[k] = state.countries[k];
+    for (const pl of placements) {
+      copy[pl.country] = { ...copy[pl.country] };
+      copy[pl.country][sideKey] += pl.amount;
+    }
+    return copy;
+  }, [state.countries, placements, sideKey]);
+
+  // Sound cues for state changes that aren't tied to a single human click
+  // (DEFCON shifts, VP swings, game over) — covers AI moves and event fallout.
+  const prevSnd = useRef({ id: gameId, defcon: state.defcon, vp: state.vp, over: !!state.over });
+  useEffect(() => {
+    const prev = prevSnd.current;
+    // A restart bumps gameId: reseed the baseline so a fresh game (defcon 5,
+    // vp 0) doesn't replay the previous game's DEFCON/VP cues.
+    if (prev.id !== gameId) {
+      prevSnd.current = { id: gameId, defcon: state.defcon, vp: state.vp, over: !!state.over };
+      return;
+    }
+    if (state.defcon < prev.defcon) playSound('defconDown');
+    else if (state.defcon > prev.defcon) playSound('defconUp');
+    if (state.vp !== prev.vp) playSound('vp');
+    if (state.over && !prev.over) {
+      playSound(mode === 'vsAI' && state.over.winner !== perspective ? 'lose' : 'win');
+    }
+    prevSnd.current = { id: gameId, defcon: state.defcon, vp: state.vp, over: !!state.over };
+  }, [state.defcon, state.vp, state.over, gameId, perspective, mode]);
 
   // reset interaction state whenever the pending target changes
   const key = `${state.turn}-${state.actionRound}-${state.phasing}-${p?.kind}-${(p as { meta?: { cardId?: string } })?.meta?.cardId ?? ''}`;
@@ -143,13 +198,34 @@ function Game({ mode, humanSide, initialState, onExit }: { mode: Mode; humanSide
   function onCard(id: string) {
     if (!myTurn || !p) return;
     if (p.kind === 'headline') {
+      playSound('headline');
       dispatch({ type: 'pickHeadline', side: perspective, cardId: id });
     } else if (p.kind === 'playCard') {
-      setSelCard((cur) => (cur === id ? null : id));
+      setSelCard((cur) => {
+        const next = cur === id ? null : id;
+        if (next) playSound('select');
+        return next;
+      });
     }
   }
 
   // ---- country highlight + click ----
+  // Simulate the current pending placements to get the post-placement influence
+  // map and the ops already spent (enemy-controlled countries cost 2, else 1).
+  function simPlacements(): { sim: Record<string, { us: number; ussr: number }>; used: number } {
+    const enemy: Side = perspective === 'US' ? 'USSR' : 'US';
+    const sim: Record<string, { us: number; ussr: number }> = { ...state.countries };
+    let used = 0;
+    for (const pl of placements) {
+      sim[pl.country] = { ...sim[pl.country] };
+      used += controller(pl.country, sim[pl.country]) === enemy ? 2 : 1;
+      if (perspective === 'US') sim[pl.country].us += 1; else sim[pl.country].ussr += 1;
+    }
+    return { sim, used };
+  }
+  function placementCostUsed(): number {
+    return simPlacements().used;
+  }
   function placeable(id: string): boolean {
     if (!myTurn || p?.kind !== 'opType' || opType !== 'influence') return false;
     const def = COUNTRIES[id];
@@ -157,20 +233,12 @@ function Game({ mode, humanSide, initialState, onExit }: { mode: Mode; humanSide
     let reach = (perspective === 'US' && def.adjUS) || (perspective === 'USSR' && def.adjUSSR);
     if (!reach) for (const n of def.adj) if (COUNTRIES[n] && startInf(state)[n][perspective === 'US' ? 'us' : 'ussr'] > 0) reach = true;
     if (!reach) return false;
-    // budget check (approx, considering placements + 2-cost)
-    return placementCostUsed() < budget;
-  }
-  function placementCostUsed(): number {
+    // Budget check that includes the cost of THIS prospective placement, so a
+    // 2-cost (enemy-controlled) target is only offered when 2 ops remain.
     const enemy: Side = perspective === 'US' ? 'USSR' : 'US';
-    const sim: Record<string, { us: number; ussr: number }> = { ...state.countries };
-    let used = 0;
-    for (const pl of placements) {
-      sim[pl.country] = { ...sim[pl.country] };
-      const cost = controller(pl.country, sim[pl.country]) === enemy ? 2 : 1;
-      used += cost;
-      if (perspective === 'US') sim[pl.country].us += 1; else sim[pl.country].ussr += 1;
-    }
-    return used;
+    const { sim, used } = simPlacements();
+    const marginal = controller(id, sim[id]) === enemy ? 2 : 1;
+    return used + marginal <= budget;
   }
   function highlight(id: string): boolean {
     if (!myTurn || p?.kind !== 'opType') return false;
@@ -182,40 +250,58 @@ function Game({ mode, humanSide, initialState, onExit }: { mode: Mode; humanSide
   function onCountry(id: string) {
     if (!myTurn || p?.kind !== 'opType') return;
     if (opType === 'coup' && canCoup(state, id, perspective, false)) {
+      playSound('coup');
       dispatch({ type: 'coup', side: perspective, countryId: id });
       reset();
     } else if (opType === 'realign' && canRealign(state, id, perspective)) {
-      setRealignSel((s) => (s.includes(id) ? s.filter((x) => x !== id) : s.length < budget ? [...s, id] : s));
+      setRealignSel((s) => {
+        const has = s.includes(id);
+        playSound(has ? 'ui' : 'select');
+        return has ? s.filter((x) => x !== id) : s.length < budget ? [...s, id] : s;
+      });
     } else if (opType === 'influence' && placeable(id)) {
+      playSound(sideKey === 'us' ? 'placeUS' : 'placeUSSR');
       setPlacements((ps) => [...ps, { country: id, amount: 1 }]);
+    } else if (opType === 'influence' || opType === 'coup' || opType === 'realign') {
+      // clicked a non-eligible country — give a soft "can't do that" cue
+      playSound('error');
     }
   }
 
   // ---- play-card helpers ----
   function playEvent() {
     if (!selCard) return;
+    playSound('card');
     dispatch({ type: 'playCard', side: perspective, cardId: selCard, mode: 'event' });
     reset();
   }
   function playOps() {
     if (!selCard) return;
+    playSound('card');
     dispatch({ type: 'playCard', side: perspective, cardId: selCard, mode: 'ops' });
     reset();
   }
   function playScoring() {
     if (!selCard) return;
+    playSound('card');
     dispatch({ type: 'playCard', side: perspective, cardId: selCard, mode: 'scoring' });
     reset();
   }
   function confirmInfluence() {
+    // Safety net: never commit (or play the success chime) for an over-budget
+    // batch — the engine would reject it and silently drop the whole placement.
+    if (!placements.length || placementCostUsed() > budget) { playSound('error'); return; }
+    playSound('confirm');
     dispatch({ type: 'placeInfluence', side: perspective, placements });
     reset();
   }
   function confirmRealign() {
+    playSound('realign');
     dispatch({ type: 'realign', side: perspective, countryIds: realignSel });
     reset();
   }
   function space() {
+    playSound('space');
     dispatch({ type: 'space', side: perspective });
     reset();
   }
@@ -225,15 +311,26 @@ function Game({ mode, humanSide, initialState, onExit }: { mode: Mode; humanSide
   return (
     <div className="app">
       <header className="app-header">
-        <button className="exit" onClick={onExit}>← Menu</button>
+        <button className="exit" onClick={() => { playSound('ui'); onExit(); }}>← Menu</button>
         <SideBadge side="US" acting={state.awaiting === 'US' && !state.over} />
         <Tracks state={state} />
         <SideBadge side="USSR" acting={state.awaiting === 'USSR' && !state.over} />
-        <button className="exit" onClick={() => { clearStoredSave(); restart(); }}>↻ Restart</button>
+        <button className="exit" disabled={!canUndo} title="Undo the last move" onClick={() => { playSound('undo'); reset(); undo(); }}>↶ Undo</button>
+        <SoundButton />
+        <button className="exit" onClick={() => { playSound('ui'); clearStoredSave(); restart(); }}>↻ Restart</button>
       </header>
 
       <main className="main">
-        <Board state={state} onClickCountry={onCountry} highlight={highlight} />
+        <Board
+          state={state}
+          displayCountries={displayCountries}
+          onClickCountry={onCountry}
+          highlight={highlight}
+          selected={(id) =>
+            (opType === 'influence' && placements.some((pl) => pl.country === id)) ||
+            (opType === 'realign' && realignSel.includes(id))
+          }
+        />
 
         <aside className="sidebar">
           <div className="panel" data-tour="panel">
@@ -276,9 +373,9 @@ function Game({ mode, humanSide, initialState, onExit }: { mode: Mode; humanSide
                 <h3>Spend {budget} Op{budget !== 1 ? 's' : ''}</h3>
                 {!opType && (
                   <div className="modes">
-                    <button onClick={() => setOpType('influence')}>Place Influence</button>
-                    <button onClick={() => setOpType('coup')}>Coup</button>
-                    <button onClick={() => setOpType('realign')}>Realignment</button>
+                    <button onClick={() => { playSound('ui'); setOpType('influence'); }}>Place Influence</button>
+                    <button onClick={() => { playSound('ui'); setOpType('coup'); }}>Coup</button>
+                    <button onClick={() => { playSound('ui'); setOpType('realign'); }}>Realignment</button>
                     <button disabled={!canAttemptSpace(state, perspective, budget)} onClick={space}>Space Race</button>
                   </div>
                 )}
@@ -287,8 +384,9 @@ function Game({ mode, humanSide, initialState, onExit }: { mode: Mode; humanSide
                     <p className="hint">Click highlighted countries ({placements.length} placed, {placementCostUsed()}/{budget} spent).</p>
                     <div className="modes">
                       <button disabled={!placements.length} onClick={confirmInfluence}>Confirm</button>
-                      <button onClick={() => setPlacements([])}>Clear</button>
-                      <button onClick={() => setOpType(null)}>Back</button>
+                      <button disabled={!placements.length} onClick={() => { playSound('undo'); setPlacements((ps) => ps.slice(0, -1)); }}>↶ Undo</button>
+                      <button disabled={!placements.length} onClick={() => { playSound('ui'); setPlacements([]); }}>Clear</button>
+                      <button onClick={() => { playSound('ui'); setOpType(null); }}>Back</button>
                     </div>
                   </div>
                 )}
