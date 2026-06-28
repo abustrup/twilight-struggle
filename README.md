@@ -23,6 +23,9 @@ dependencies, runs tests, typechecks, builds the Vite app with the
 Pages artifact. Do not use "Deploy from branch" for this app – that serves raw
 files and skips the Vite build.
 
+One repository setting is required once: GitHub → Settings → Pages → Source →
+GitHub Actions.
+
 Use `npm run preview:pages` to test the production build locally at the same
 path GitHub Pages will use.
 
