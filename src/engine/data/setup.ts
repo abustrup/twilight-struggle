@@ -1,5 +1,5 @@
 // ============================================================================
-// setup.ts — Initial influence placement (rules 3.2, 3.3, 3.4).
+// setup.ts – Initial influence placement (rules 3.2, 3.3, 3.4).
 // ============================================================================
 
 import { Side } from './cards';

@@ -1,5 +1,5 @@
 // ============================================================================
-// realignment.ts — Realignment rolls (rule 6.2).
+// realignment.ts – Realignment rolls (rule 6.2).
 // ============================================================================
 
 import type { GameState } from '../state/types';

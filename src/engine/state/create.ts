@@ -1,5 +1,5 @@
 // ============================================================================
-// create.ts — Build the initial GameState and run automated setup.
+// create.ts – Build the initial GameState and run automated setup.
 // ============================================================================
 
 import type { GameState, GameOptions } from './types';

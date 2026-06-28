@@ -1,5 +1,5 @@
 // ============================================================================
-// rng.ts — Deterministic, injectable PRNG (mulberry32). Shared by engine,
+// rng.ts – Deterministic, injectable PRNG (mulberry32). Shared by engine,
 // tests, and (in online) replaced by server-rolled results.
 // ============================================================================
 

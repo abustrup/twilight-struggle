@@ -1,5 +1,5 @@
 // ============================================================================
-// scoring.ts — Region scoring (rule 10.1) and final scoring (10.3.2).
+// scoring.ts – Region scoring (rule 10.1) and final scoring (10.3.2).
 //
 // Scoring per region (10.1.1-10.1.2):
 //  Presence: control >= 1 country in region.
@@ -16,11 +16,11 @@
 //   Middle East  3/5/7
 //   Africa       1/4/6
 //   Central Am.  1/3/5
-//   South Am.    2/3/6
+//   South Am.    2/5/6
 // ============================================================================
 
 import type { GameState } from '../state/types';
-import type { Region } from '../data/map';
+import type { ScoringRegion } from '../data/map';
 import { COUNTRIES, countriesInRegion } from '../data/map';
 import { controller, type ControlStatus } from '../core/control';
 
@@ -30,13 +30,15 @@ interface RegionTable {
   control: number;
 }
 
-const TABLES: Record<Region, RegionTable> = {
+type RegionScoreKey = Exclude<ScoringRegion, 'SoutheastAsia'>;
+
+const TABLES: Record<RegionScoreKey, RegionTable> = {
   Europe: { presence: 3, domination: 7, control: Number.MAX_SAFE_INTEGER },
   Asia: { presence: 3, domination: 7, control: 9 },
   MiddleEast: { presence: 3, domination: 5, control: 7 },
   Africa: { presence: 1, domination: 4, control: 6 },
   CentralAmerica: { presence: 1, domination: 3, control: 5 },
-  SouthAmerica: { presence: 2, domination: 3, control: 6 },
+  SouthAmerica: { presence: 2, domination: 5, control: 6 },
 };
 
 type Level = 'none' | 'presence' | 'domination' | 'control';
@@ -48,7 +50,7 @@ interface SideScore {
   nonBG: number;
 }
 
-function computeSide(state: GameState, region: Region, side: 'US' | 'USSR'): SideScore {
+function computeSide(state: GameState, region: RegionScoreKey, side: 'US' | 'USSR'): SideScore {
   const ids = countriesInRegion(region);
   const enemySP = side === 'US' ? 'adjUSSR' : 'adjUS';
   let countries = 0;
@@ -68,7 +70,7 @@ function computeSide(state: GameState, region: Region, side: 'US' | 'USSR'): Sid
 function levelForSide(
   side: SideScore,
   opp: SideScore,
-  region: Region,
+  region: RegionScoreKey,
 ): Level {
   if (side.countries === 0) return 'none';
   const table = TABLES[region];
@@ -90,7 +92,7 @@ function levelForSide(
   return 'presence';
 }
 
-function levelVP(level: Level, region: Region): number {
+function levelVP(level: Level, region: RegionScoreKey): number {
   const t = TABLES[region];
   switch (level) {
     case 'none': return 0;
@@ -101,7 +103,7 @@ function levelVP(level: Level, region: Region): number {
 }
 
 export interface RegionScoreResult {
-  region: Region;
+  region: RegionScoreKey;
   usRaw: number;
   ussrRaw: number;
   net: number; // positive = US gains, negative = USSR gains
@@ -111,7 +113,7 @@ export interface RegionScoreResult {
   europeControlWinner?: 'US' | 'USSR';
 }
 
-export function scoreRegion(state: GameState, region: Region): RegionScoreResult {
+export function scoreRegion(state: GameState, region: RegionScoreKey): RegionScoreResult {
   const us = computeSide(state, region, 'US');
   const ussr = computeSide(state, region, 'USSR');
   const usLevel = levelForSide(us, ussr, region);
@@ -133,7 +135,7 @@ export function scoreRegion(state: GameState, region: Region): RegionScoreResult
 // Final scoring at end of turn 10 (10.3.2): all regions scored (SEA folded
 // into Asia; handled because SEA countries have region 'Asia').
 export function finalScore(state: GameState): { net: number; perRegion: RegionScoreResult[]; europeControlWinner?: 'US' | 'USSR' } {
-  const regions: Region[] = ['Europe', 'Asia', 'MiddleEast', 'Africa', 'CentralAmerica', 'SouthAmerica'];
+  const regions: RegionScoreKey[] = ['Europe', 'Asia', 'MiddleEast', 'Africa', 'CentralAmerica', 'SouthAmerica'];
   const perRegion = regions.map((r) => scoreRegion(state, r));
   let net = 0;
   let europeControlWinner: 'US' | 'USSR' | undefined;
@@ -147,19 +149,14 @@ export function finalScore(state: GameState): { net: number; perRegion: RegionSc
 // Southeast Asia sub-scoring (only its own scoring card, 7.2). Simplified:
 // counts SEA subregion countries.
 export function scoreSoutheastAsia(state: GameState): number {
-  const ids = Object.keys(COUNTRIES).filter((id) => COUNTRIES[id].subregion === 'SoutheastAsia');
+  const ids = ['burma', 'laos', 'vietnam', 'malaysia', 'indonesia', 'philippines', 'thailand'];
   let us = 0;
   let ussr = 0;
-  const bgInSEA = ids.filter((id) => COUNTRIES[id].battleground);
-  const usBGs = bgInSEA.filter((id) => controller(id, state.countries[id]) === 'US').length;
-  const ussrBGs = bgInSEA.filter((id) => controller(id, state.countries[id]) === 'USSR').length;
   for (const id of ids) {
     const ctrl = controller(id, state.countries[id]);
-    if (ctrl === 'US') us++;
-    else if (ctrl === 'USSR') ussr++;
+    const value = id === 'thailand' ? 2 : 1;
+    if (ctrl === 'US') us += value;
+    else if (ctrl === 'USSR') ussr += value;
   }
-  // SEA table: 1 VP per country, +2 per BG (winner-takes-Vietnam bonus ~+1)
-  us += usBGs * 2 + (controller('vietnam', state.countries.vietnam) === 'US' ? 1 : 0);
-  ussr += ussrBGs * 2 + (controller('vietnam', state.countries.vietnam) === 'USSR' ? 1 : 0);
   return us - ussr;
 }

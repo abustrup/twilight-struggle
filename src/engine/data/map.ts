@@ -1,9 +1,10 @@
-// AUTO-GENERATED from Market Struggle map design. Authoritative data — regenerate via scripts/gen-map.mjs.
+// AUTO-GENERATED from Market Struggle map design. Authoritative data – regenerate via scripts/gen-map.mjs.
 
-export type Region = "Europe" | "MiddleEast" | "Asia" | "Africa" | "CentralAmerica" | "SouthAmerica";
+export type ScoringRegion = "Europe" | "MiddleEast" | "Asia" | "Africa" | "CentralAmerica" | "SouthAmerica" | "SoutheastAsia";
+export type Region = "Europe" | "MiddleEast" | "Asia" | "Africa" | "CentralAmerica" | "SouthAmerica" | "NorthAmerica";
 export type SubRegion = "WesternEurope" | "EasternEurope" | "SoutheastAsia" | "None";
 
-export interface CountryDef { id: string; name: string; region: Region; subregion: SubRegion; stability: number; battleground: boolean; adj: string[]; adjUS?: boolean; adjUSSR?: boolean; }
+export interface CountryDef { id: string; name: string; region: Region; scoringRegion?: Exclude<ScoringRegion, "SoutheastAsia">; subregion: SubRegion; stability: number; battleground: boolean; adj: string[]; adjUS?: boolean; adjUSSR?: boolean; }
 
 export const COUNTRIES: Record<string, CountryDef> = {
   norway: { id: "norway", name: "Norway", region: "Europe", subregion: "WesternEurope", stability: 4, battleground: false, adj: ["uk","sweden","denmark"] },
@@ -69,8 +70,8 @@ export const COUNTRIES: Record<string, CountryDef> = {
   malaysia: { id: "malaysia", name: "Malaysia", region: "Asia", subregion: "SoutheastAsia", stability: 2, battleground: true, adj: ["thailand","indonesia","australia"] },
   indonesia: { id: "indonesia", name: "Indonesia", region: "Asia", subregion: "SoutheastAsia", stability: 1, battleground: true, adj: ["malaysia","philippines","australia"] },
   australia: { id: "australia", name: "Australia", region: "Asia", subregion: "None", stability: 4, battleground: false, adj: ["indonesia","malaysia"] },
-  canada: { id: "canada", name: "Canada", region: "Europe", subregion: "WesternEurope", stability: 4, battleground: false, adj: ["uk"], adjUS: true },
-  mexico: { id: "mexico", name: "Mexico", region: "Europe", subregion: "EasternEurope", stability: 2, battleground: false, adj: ["guatemala","cuba"], adjUS: true },
+  canada: { id: "canada", name: "Canada", region: "NorthAmerica", subregion: "None", stability: 4, battleground: false, adj: ["uk"], adjUS: true },
+  mexico: { id: "mexico", name: "Mexico", region: "CentralAmerica", subregion: "None", stability: 2, battleground: false, adj: ["guatemala","cuba"], adjUS: true },
   guatemala: { id: "guatemala", name: "Guatemala", region: "CentralAmerica", subregion: "None", stability: 1, battleground: false, adj: ["mexico","honduras","elsalvador"] },
   cuba: { id: "cuba", name: "Cuba", region: "CentralAmerica", subregion: "None", stability: 3, battleground: true, adj: ["haiti","mexico"], adjUS: true },
   haiti: { id: "haiti", name: "Haiti", region: "CentralAmerica", subregion: "None", stability: 1, battleground: false, adj: ["cuba","domrep"] },
@@ -95,8 +96,12 @@ export const COUNTRIES: Record<string, CountryDef> = {
 export const COUNTRY_IDS = Object.keys(COUNTRIES);
 export const SUPERPOWERS = ["usa", "ussr"] as const;
 
+for (const country of Object.values(COUNTRIES)) {
+  if (country.region !== "NorthAmerica") country.scoringRegion = country.region;
+}
+
 export function getCountry(id: string) { const c = COUNTRIES[id]; if (!c) throw new Error("Unknown country: " + id); return c; }
-export function countriesInRegion(r: Region) { return COUNTRY_IDS.filter(id => COUNTRIES[id].region === r); }
+export function countriesInRegion(r: Exclude<ScoringRegion, "SoutheastAsia">) { return COUNTRY_IDS.filter(id => COUNTRIES[id].scoringRegion === r); }
 export function adjacent(a: string, b: string) { if (a === b) return false; const d = COUNTRIES[a]; return !!d && d.adj.includes(b); }
-export function forbiddenRegionsForCoup(defcon: number): Region[] { switch (defcon) { case 5: return []; case 4: return ["Europe"]; case 3: return ["Europe", "Asia"]; case 2: return ["Europe", "Asia", "MiddleEast"]; default: return ["Europe", "Asia", "MiddleEast", "Africa", "CentralAmerica", "SouthAmerica"]; } }
-export function canCoupInRegion(defcon: number, region: Region) { return !forbiddenRegionsForCoup(defcon).includes(region); }
+export function forbiddenRegionsForCoup(defcon: number): Exclude<ScoringRegion, "SoutheastAsia">[] { switch (defcon) { case 5: return []; case 4: return ["Europe"]; case 3: return ["Europe", "Asia"]; case 2: return ["Europe", "Asia", "MiddleEast"]; default: return ["Europe", "Asia", "MiddleEast", "Africa", "CentralAmerica", "SouthAmerica"]; } }
+export function canCoupInRegion(defcon: number, region: Region) { return region !== "NorthAmerica" && !forbiddenRegionsForCoup(defcon).includes(region); }

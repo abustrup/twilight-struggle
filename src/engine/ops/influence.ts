@@ -1,5 +1,5 @@
 // ============================================================================
-// influence.ts — Influence placement (rule 6.1).
+// influence.ts – Influence placement (rule 6.1).
 // ============================================================================
 
 import type { GameState } from '../state/types';

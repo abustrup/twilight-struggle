@@ -1,177 +1,155 @@
-// ============================================================================
-// cards.ts — The 110-card deck (base game). Each card: ops, side, war phase,
-// starred (asterisk = removed after event), scoring region (if any), and an
-// `impl` key matching an event handler in events/index.ts.
-//
-// NOTE: Ops values / sides reconstructed from the canonical GMT card set.
-// Values should be cross-checked against the official cards. Events with
-// impl 'noop' are playable for Ops; their event is a safe no-op until wired.
-// ============================================================================
+// AUTO-GENERATED from All cards.numbers. Edit metadata here only with a source-table check.
+import type { ScoringRegion } from './map';
 
 export type Side = 'US' | 'USSR';
 export type Affiliation = Side | 'Neutral';
 export type War = 'Early' | 'Mid' | 'Late';
 
 export interface CardDef {
+  number: number;
   id: string;
   name: string;
   ops: number;
   side: Affiliation;
   war: War;
-  starred: boolean; // asterisk: removed from game after played as event
-  scoring?: import('./map.ts').Region; // set for scoring cards
-  impl: string; // event handler key (see events/index.ts)
+  starred: boolean;
+  optional: boolean;
+  scoring?: ScoringRegion;
+  impl: string;
   text: string;
 }
 
-// Scoring cards
-const SCORING = (region: import('./map.ts').Region): Omit<CardDef, 'id' | 'name' | 'war' | 'text'> => ({
-  ops: 0,
-  side: 'Neutral',
-  starred: false,
-  scoring: region,
-  impl: `score:${region}`,
-});
+export const CHINA_CARD_ID = 'thechinacard';
 
-export const CARDS: CardDef[] = [
-  // ---------------- EARLY WAR ----------------
-  { id: 'asiascoring', name: 'Asia Scoring', war: 'Early', text: 'Score Asia.', ...SCORING('Asia') },
-  { id: 'europescoring', name: 'Europe Scoring', war: 'Early', text: 'Score Europe.', ...SCORING('Europe') },
-  { id: 'mideastscoring', name: 'Middle East Scoring', war: 'Early', text: 'Score Middle East.', ...SCORING('MiddleEast') },
-  { id: 'duckandcover', name: 'Duck and Cover', ops: 3, side: 'US', war: 'Early', starred: true, impl: 'duckandcover', text: 'Degrade DEFCON 1. US gains VP = 5 - DEFCON.' },
-  { id: 'fiveyearplan', name: 'Five Year Plan', ops: 3, side: 'US', war: 'Early', starred: false, impl: 'noop', text: 'USSR discards a card at random; if starred, US gains 1 VP.' },
-  { id: 'socialistgovs', name: 'Socialist Governments', ops: 3, side: 'USSR', war: 'Early', starred: false, impl: 'removeinfluence', text: 'Remove 3 US Influence from Europe (max 2 per country).' },
-  { id: 'fidel', name: 'Fidel', ops: 2, side: 'USSR', war: 'Early', starred: true, impl: 'fidel', text: 'USSR gains Cuba.' },
-  { id: 'vietnamrevolts', name: 'Vietnam Revolts', ops: 2, side: 'USSR', war: 'Early', starred: true, impl: 'vietnamrevolts', text: 'Add 2 USSR Influence to Vietnam. +1 to all USSR Ops in SE Asia this turn.' },
-  { id: 'blockade', name: 'Blockade', ops: 1, side: 'USSR', war: 'Early', starred: true, impl: 'blockade', text: 'US discards a 3+ Op card or USSR gains West Germany.' },
-  { id: 'koreanwar', name: 'Korean War', ops: 2, side: 'USSR', war: 'Early', starred: false, impl: 'war', text: 'USSR invades South Korea. Roll: -1 per US-controlled adjacent country.' },
-  { id: 'romanianabdication', name: 'Romanian Abdication', ops: 1, side: 'USSR', war: 'Early', starred: true, impl: 'influence', text: 'USSR gains Romania.' },
-  { id: 'arabisraeliwar', name: 'Arab-Israeli War', ops: 2, side: 'USSR', war: 'Early', starred: false, impl: 'war', text: 'USSR invades Israel. Roll: -1 per US-controlled adjacent country.' },
-  { id: 'comecon', name: 'COMECON', ops: 3, side: 'USSR', war: 'Early', starred: true, impl: 'influence', text: '+1 USSR Influence to 4 uncontrolled/E.Europe countries.' },
-  { id: 'nasser', name: 'Nasser', ops: 1, side: 'USSR', war: 'Early', starred: true, impl: 'nasser', text: '+2 USSR Egypt, -1 US Egypt.' },
-  { id: 'warsawpact', name: 'Warsaw Pact Formed', ops: 3, side: 'USSR', war: 'Early', starred: true, impl: 'warsawpact', text: 'Remove all US Influence from one E.Europe country, or add 5 USSR to E.Europe.' },
-  { id: 'degaulle', name: 'De Gaulle Leads France', ops: 3, side: 'USSR', war: 'Early', starred: true, impl: 'degaulle', text: '-2 US France, +1 USSR France. Cancels NATO for France.' },
-  { id: 'capturednazi', name: 'Captured Nazi Scientists', ops: 1, side: 'Neutral', war: 'Early', starred: false, impl: 'spaceraceadvance', text: 'Advance 1 box on Space Race.' },
-  { id: 'trumandoctrine', name: 'Truman Doctrine', ops: 1, side: 'US', war: 'Early', starred: true, impl: 'trumandoctrine', text: 'Remove all USSR Influence from one uncontrolled country in Europe.' },
-  { id: 'olympicgames', name: 'Olympic Games', ops: 2, side: 'Neutral', war: 'Early', starred: false, impl: 'olympicgames', text: 'Host Olympics; +2 VP or opponent boycotts (degrade DEFCON 1).' },
-  { id: 'nato', name: 'NATO', ops: 4, side: 'US', war: 'Early', starred: true, impl: 'nato', text: 'USSR may not coup/realign US-controlled countries in Europe. Requires Warsaw Pact or Marshall Plan.' },
-  { id: 'independentreds', name: 'Independent Reds', ops: 3, side: 'US', war: 'Early', starred: true, impl: 'independentreds', text: 'US gains Influence equal to Stability in Yugoslavia, Romania, Bulgaria, Hungary, Czech (one each).' },
-  { id: 'marshallplan', name: 'Marshall Plan', ops: 4, side: 'US', war: 'Early', starred: true, impl: 'marshallplan', text: '+1 US Influence to 7 W.Europe countries. Allows NATO.' },
-  { id: 'indopakiwar', name: 'Indo-Pakistani War', ops: 2, side: 'Neutral', war: 'Early', starred: false, impl: 'war', text: 'Invade either India or Pakistan. Roll: -1 per opponent-controlled adjacent country.' },
-  { id: 'containment', name: 'Containment', ops: 3, side: 'US', war: 'Early', starred: false, impl: 'opmod', text: '+1 to all US Operations this turn.' },
-  { id: 'ciacreated', name: 'CIA Created', ops: 1, side: 'US', war: 'Early', starred: true, impl: 'noop', text: 'USSR reveals hand; then US performs 1 Op.' },
-  { id: 'usjapan', name: 'US/Japan Mutual Defense Pact', ops: 4, side: 'US', war: 'Early', starred: true, impl: 'usjapan', text: 'US gains Japan. USSR may not coup/realign Japan.' },
-  { id: 'suezcrisis', name: 'Suez Crisis', ops: 3, side: 'USSR', war: 'Early', starred: true, impl: 'removeinfluence', text: 'Remove up to 4 US Influence from Middle East (max 2 per country).' },
-  { id: 'easteurunrest', name: 'East European Unrest', ops: 3, side: 'US', war: 'Early', starred: true, impl: 'removeinfluence', text: 'Remove up to 3 USSR Influence from E.Europe (max 2 per country).' },
-  { id: 'decolonization', name: 'Decolonization', ops: 2, side: 'USSR', war: 'Early', starred: false, impl: 'influence', text: '+1 USSR Influence to 4 African/Asian countries.' },
-  { id: 'redscare', name: 'Red Scare/Purge', ops: 4, side: 'Neutral', war: 'Early', starred: false, impl: 'opmod', text: '-1 to all opponent Operations this turn.' },
-  { id: 'unintervention', name: 'UN Intervention', ops: 1, side: 'Neutral', war: 'Early', starred: false, impl: 'noop', text: 'Play with opponent card; cancel its event, use Ops. Not in headline.' },
-  { id: 'destalinization', name: 'De-Stalinization', ops: 3, side: 'USSR', war: 'Early', starred: false, impl: 'destalinization', text: 'Redistribute up to 4 USSR Influence among countries (must leave 2 behind in sources).' },
-  { id: 'nucleartestban', name: 'Nuclear Test Ban', ops: 4, side: 'Neutral', war: 'Early', starred: false, impl: 'defcon', text: 'Improve DEFCON 2; gain VP = DEFCON - 2.' },
-  { id: 'formosan', name: 'Formosan Resolution', ops: 2, side: 'US', war: 'Early', starred: true, impl: 'noop', text: '+2 US VP if Taiwan controlled during Asia Scoring.' },
-  { id: 'brushwar', name: 'Brush War', ops: 2, side: 'Neutral', war: 'Early', starred: false, impl: 'brushwar', text: 'Coup any non-adjacent-to-SP country; on 4-6 gain country +1 VP.' },
-  { id: 'camscoring', name: 'Central America Scoring', war: 'Early', text: 'Score Central America.', ...SCORING('CentralAmerica') },
-  { id: 'sascoring', name: 'South America Scoring', war: 'Early', text: 'Score South America.', ...SCORING('SouthAmerica') },
-  { id: 'seascoring', name: 'Southeast Asia Scoring', war: 'Early', text: 'Score Southeast Asia.', ...SCORING('Asia'), starred: true, impl: 'score:SoutheastAsia' },
-
-  // ---------------- MID WAR ----------------
-  { id: 'cubanmissile', name: 'Cuban Missile Crisis', ops: 3, side: 'USSR', war: 'Mid', starred: true, impl: 'cubanmissile', text: 'Set DEFCON to 2. Opponent loses if they coup. Cancel by removing 2 Inf.' },
-  { id: 'nuclearsubs', name: 'Nuclear Subs', ops: 2, side: 'US', war: 'Mid', starred: false, impl: 'noop', text: 'US coups do not degrade DEFCON this turn (while subs help).' },
-  { id: 'quagmire', name: 'Quagmire', ops: 3, side: 'US', war: 'Mid', starred: true, impl: 'quagmire', text: 'USSR must discard a 2+ Op card and roll 1-4 to cancel, each action round.' },
-  { id: 'salt', name: 'SALT Negotiations', ops: 3, side: 'Neutral', war: 'Mid', starred: false, impl: 'noop', text: 'Improve DEFCON 2. Take 1 card from discard or opponent draws.' },
-  { id: 'beartrap', name: 'Bear Trap', ops: 3, side: 'US', war: 'Mid', starred: true, impl: 'beartrap', text: 'USSR must discard a 2+ Op card and roll 1-4 to cancel, each action round.' },
-  { id: 'summit', name: 'Summit', ops: 3, side: 'Neutral', war: 'Mid', starred: false, impl: 'summit', text: 'Roll 1 die: improve DEFCON that much; +2 VP or cancel opponent headline ability.' },
-  { id: 'worrying', name: 'How I Learned to Stop Worrying', ops: 2, side: 'Neutral', war: 'Mid', starred: true, impl: 'worrying', text: 'Set DEFCON to any level (1-5). Gain VP = 5 - new DEFCON.' },
-  { id: 'junta', name: 'Junta', ops: 2, side: 'US', war: 'Mid', starred: false, impl: 'influence', text: '+2 US or remove 2 USSR in Central/South America.' },
-  { id: 'kitchendebates', name: 'Kitchen Debates', ops: 1, side: 'US', war: 'Mid', starred: true, impl: 'kitchendebates', text: 'If US controls more Battlegrounds than USSR, US gains 2 VP.' },
-  { id: 'missileenvy', name: 'Missile Envy', ops: 2, side: 'Neutral', war: 'Mid', starred: true, impl: 'noop', text: 'Exchange with opponent\'s highest Ops card; if only 1-2 Ops, +1 to it.' },
-  { id: 'wewillburyyou', name: 'We Will Bury You', ops: 4, side: 'USSR', war: 'Mid', starred: true, impl: 'wewillburyyou', text: 'Degrade DEFCON 1. USSR gains 3 VP if US has not played this card.' },
-  { id: 'brezhnev', name: 'Brezhnev Doctrine', ops: 3, side: 'USSR', war: 'Mid', starred: false, impl: 'opmod', text: '+1 to all USSR Operations this turn.' },
-  { id: 'portugalempire', name: 'Portuguese Empire Crumbles', ops: 2, side: 'USSR', war: 'Mid', starred: true, impl: 'influence', text: '+2 USSR Influence to Angola and SE African States.' },
-  { id: 'southafricanunrest', name: 'South African Unrest', ops: 2, side: 'USSR', war: 'Mid', starred: true, impl: 'removeinfluence', text: '-1 US Influence each in South Africa, Zaire, Botswana; +1 USSR South Africa.' },
-  { id: 'allende', name: 'Allende', ops: 1, side: 'USSR', war: 'Mid', starred: true, impl: 'influence', text: 'USSR gains Chile.' },
-  { id: 'willybrandt', name: 'Willy Brandt', ops: 2, side: 'USSR', war: 'Mid', starred: true, impl: 'noop', text: '+2 USSR W. Germany, -1 US W. Germany. Cancels NATO for W. Germany. +1 USSR VP.' },
-  { id: 'muslimrevolution', name: 'Muslim Revolution', ops: 2, side: 'USSR', war: 'Mid', starred: true, impl: 'noop', text: 'Remove all US Influence from 2 Middle East countries (no Iran/Iraq). Removed if unplayable.' },
-  { id: 'abm', name: 'ABM Treaty', ops: 3, side: 'Neutral', war: 'Mid', starred: false, impl: 'defcon', text: 'Improve DEFCON 2. US gains 1 VP.' },
-  { id: 'culturalrevolution', name: 'Cultural Revolution', ops: 3, side: 'USSR', war: 'Mid', starred: true, impl: 'noop', text: 'If USSR holds The China Card, +1 VP; otherwise USSR takes The China Card face up.' },
-  { id: 'flowerpower', name: 'Flower Power', ops: 4, side: 'USSR', war: 'Mid', starred: false, impl: 'noop', text: 'Permanent: USSR gains 2 VP whenever US plays a War card.' },
-  { id: 'u2incident', name: 'U-2 Incident', ops: 1, side: 'USSR', war: 'Mid', starred: true, impl: 'u2incident', text: 'USSR gains 1 VP (and another if UN Intervention later).' },
-  { id: 'opec', name: 'OPEC', ops: 3, side: 'USSR', war: 'Mid', starred: true, impl: 'opec', text: 'USSR gains 1 VP per controlled: Egypt, Iran, Libya, Saudi Arabia, Gulf States, Venezuela, Iraq.' },
-  { id: 'lonegunman', name: '"Lone Gunman"', ops: 1, side: 'USSR', war: 'Mid', starred: true, impl: 'noop', text: 'US reveals hand; USSR gains 1 VP.' },
-  { id: 'colonialrearguards', name: 'Colonial Rearguards', ops: 2, side: 'Neutral', war: 'Mid', starred: false, impl: 'influence', text: '+1 US Influence to 4 countries in Africa/Asia/SE Asia.' },
-  { id: 'panamacanal', name: 'Panama Canal Returned', ops: 2, side: 'US', war: 'Mid', starred: true, impl: 'influence', text: '+1 US Influence to Panama, Venezuela, Colombia, Costa Rica.' },
-  { id: 'campdavid', name: 'Camp David Accords', ops: 2, side: 'US', war: 'Mid', starred: true, impl: 'campdavid', text: '+1 US each to Israel, Egypt, Jordan. Cancels Arab-Israeli War event.' },
-  { id: 'puppetgovs', name: 'Puppet Governments', ops: 2, side: 'US', war: 'Mid', starred: true, impl: 'influence', text: '+1 US Influence to 3 uncontrolled countries.' },
-  { id: 'grainsales', name: 'Grain Sales to Soviets', ops: 2, side: 'US', war: 'Mid', starred: false, impl: 'noop', text: 'Randomly take 1 USSR card; play it or return it and use 2 Ops.' },
-  { id: 'johnpaul', name: 'John Paul II Elected Pope', ops: 2, side: 'US', war: 'Mid', starred: true, impl: 'johnpaul', text: '-2 USSR Poland, +1 US Poland, +1 US E. Europe (allows Solidarity).' },
-  { id: 'deathsquads', name: 'Latin American Death Squads', ops: 2, side: 'US', war: 'Mid', starred: true, impl: 'noop', text: 'Kill 2 Influence in Central/South America realign? Free realign.' },
-  { id: 'oasfounded', name: 'OAS Founded', ops: 2, side: 'US', war: 'Mid', starred: true, impl: 'influence', text: '+2 US Influence in Central/South America.' },
-  { id: 'nixonchina', name: 'Nixon Plays the China Card', ops: 2, side: 'US', war: 'Mid', starred: true, impl: 'noop', text: 'US takes The China Card (face up) if USSR holds it; +1 US VP.' },
-  { id: 'sadatexpels', name: 'Sadat Expels Soviets', ops: 1, side: 'US', war: 'Mid', starred: true, impl: 'sadatexpels', text: '-3 USSR Egypt, +1 US Egypt, +1 US VP.' },
-  { id: 'shuttlediplomacy', name: 'Shuttle Diplomacy', ops: 3, side: 'US', war: 'Mid', starred: false, impl: 'noop', text: 'Permanent: -1 USSR VP per中东 scoring? Reduce USSR Mideast score by 1.' },
-  { id: 'voiceofamerica', name: 'The Voice of America', ops: 2, side: 'US', war: 'Mid', starred: true, impl: 'voiceofamerica', text: 'Remove up to 4 USSR Influence from non-European countries (max 2 each).' },
-  { id: 'liberationtheology', name: 'Liberation Theology', ops: 2, side: 'USSR', war: 'Mid', starred: true, impl: 'influence', text: '+2 USSR Influence to 2 Central American countries.' },
-  { id: 'ussuri', name: 'Ussuri River Skirmish', ops: 3, side: 'US', war: 'Mid', starred: true, impl: 'ussuri', text: '+2 USSR? USSR loses 2, China to US: -2 USSR anywhere, +1 US Asia, US takes China Card if held by USSR.' },
-  { id: 'asknot', name: '"Ask Not..."', ops: 3, side: 'US', war: 'Mid', starred: true, impl: 'noop', text: 'Discard up to your whole hand (incl. this) and draw replacements.' },
-  { id: 'allianceforprogress', name: 'Alliance for Progress', ops: 3, side: 'US', war: 'Mid', starred: true, impl: 'noop', text: 'US gains 1 VP per US-controlled Battleground in Central/South America.' },
-  { id: 'africascoring', name: 'Africa Scoring', war: 'Mid', text: 'Score Africa.', ...SCORING('Africa') },
-  { id: 'onesmallstep', name: '"One Small Step..."', ops: 2, side: 'US', war: 'Mid', starred: true, impl: 'onesmallstep', text: 'If behind on Space Race, move 2 boxes forward (gain 2nd-box VP only).' },
-  { id: 'armsrace', name: 'Arms Race', ops: 3, side: 'Neutral', war: 'Mid', starred: false, impl: 'armsrace', text: '+3 VP if ahead on Space Race, +1 if tied, else 0.' },
-  { id: 'solidarity', name: 'Solidarity', ops: 2, side: 'US', war: 'Mid', starred: true, impl: 'noop', text: '+3 US Poland. Requires John Paul II. Permanent until Martial Law.' },
-  { id: 'iranianhostage', name: 'Iranian Hostage Crisis', ops: 3, side: 'USSR', war: 'Late', starred: true, impl: 'noop', text: 'USSR gains Iran. -1 US VP.' },
-
-  // ---------------- LATE WAR ----------------
-  { id: 'ironlady', name: 'The Iron Lady', ops: 3, side: 'US', war: 'Late', starred: true, impl: 'noop', text: '+1 US Argentina, USSR loses all Argentina, +1 US VP. Cancels Socialist Govs in UK.' },
-  { id: 'reganlibya', name: 'Reagan Bombs Libya', ops: 2, side: 'US', war: 'Late', starred: true, impl: 'noop', text: 'US gains 1 VP; USSR loses all Influence in Libya.' },
-  { id: 'starwars', name: 'Star Wars', ops: 2, side: 'US', war: 'Late', starred: true, impl: 'noop', text: 'If US ahead on Space Race, reveal USSR headline then discard a card.' },
-  { id: 'northseaoil', name: 'North Sea Oil', ops: 1, side: 'US', war: 'Late', starred: false, impl: 'noop', text: '+1 US W.Europe. Cancels OPEC permanent event.' },
-  { id: 'reformer', name: 'The Reformer', ops: 3, side: 'USSR', war: 'Late', starred: false, impl: 'noop', text: 'Permanent: USSR may place 2 Influence free in Europe, ignoring adjacency; +1 in E. Europe.' },
-  { id: 'marinebarracks', name: 'Marine Barracks Bombing', ops: 1, side: 'USSR', war: 'Late', starred: false, impl: 'noop', text: '-2 US Influence each in Lebanon, Israel, plus 1 random Middle East.' },
-  { id: 'kal007', name: 'Soviets Shoot Down KAL-007', ops: 2, side: 'US', war: 'Late', starred: true, impl: 'noop', text: 'US gains 2 VP, +1 US South Korea. Degrade DEFCON 1.' },
-  { id: 'glasnost', name: 'Glasnost', ops: 3, side: 'USSR', war: 'Late', starred: true, impl: 'noop', text: 'Improve DEFCON 2. +2 USSR Poland, +1 USSR E. Europe.' },
-  { id: 'ortega', name: 'Ortega Elected in Nicaragua', ops: 2, side: 'USSR', war: 'Late', starred: true, impl: 'noop', text: 'USSR gains Nicaragua; cancels All influence in... +1 USSR Central America.' },
-  { id: 'terrorism', name: 'Terrorism', ops: 2, side: 'USSR', war: 'Late', starred: false, impl: 'noop', text: 'Opponent discards a random card (2 if Terrorism starred).' },
-  { id: 'irancontra', name: 'Iran-Contra Scandal', ops: 2, side: 'USSR', war: 'Late', starred: true, impl: 'noop', text: '-2 US Influence in 2 Central American countries.' },
-  { id: 'chernobyl', name: 'Chernobyl', ops: 3, side: 'US', war: 'Late', starred: true, impl: 'noop', text: 'Prevent USSR from placing Influence in one region this turn (Ops events fail there).' },
-  { id: 'debtcrisis', name: 'Latin American Debt Crisis', ops: 2, side: 'USSR', war: 'Late', starred: true, impl: 'noop', text: 'US discards a 3+ Op card or USSR gains influence in S. America (2 countries).' },
-  { id: 'teardown', name: '"Tear Down This Wall"', ops: 3, side: 'US', war: 'Late', starred: true, impl: 'noop', text: '+3 US E. Germany. Cancel Socialist Govs + Reformer + Solidarity in E. Europe.' },
-  { id: 'evilempire', name: '"An Evil Empire"', ops: 3, side: 'US', war: 'Late', starred: true, impl: 'noop', text: '+1 US VP, +2 US Influence in Central America, cancel Flower Power.' },
-  { id: 'aldrichames', name: 'Aldrich Ames', ops: 2, side: 'USSR', war: 'Late', starred: true, impl: 'noop', text: 'Permanent: reveal US headline, US discards a card each turn.' },
-  { id: 'pershing2', name: 'Pershing II Deployed', ops: 3, side: 'US', war: 'Late', starred: false, impl: 'noop', text: 'US gains 1 VP; all USSR realignments in Europe +1.' },
-  { id: 'wargames', name: 'Wargames', ops: 2, side: 'Neutral', war: 'Late', starred: true, impl: 'noop', text: 'Set DEFCON to 1; if US at 7+ VP, US holds a "drill" (US wins at 7+). Defcon race.' },
-  { id: 'iraniraqwar', name: 'Iran-Iraq War', ops: 2, side: 'Neutral', war: 'Late', starred: true, impl: 'war', text: 'Invade Iran or Iraq. Roll: -1 per opponent-controlled adjacent country.' },
-  { id: 'defectors', name: 'Defectors', ops: 2, side: 'US', war: 'Early', starred: false, impl: 'noop', text: 'Cancel USSR headline if played as headline.' },
+export const ALL_CARDS: CardDef[] = [
+  { number: 1, id: "asiascoring", name: "Asia Scoring", ops: 0, side: "Neutral", war: "Early", starred: false, optional: false, scoring: "Asia", impl: "score:Asia", text: "Presence: 3; Domination: 7; Control: 9; +1 VP per controlled Battleground country in Region; +1 VP per country controlled that is adjacent to enemy superpower; MAY NOT BE HELD!" },
+  { number: 2, id: "europescoring", name: "Europe Scoring", ops: 0, side: "Neutral", war: "Early", starred: false, optional: false, scoring: "Europe", impl: "score:Europe", text: "Presence: 3; Domination: 7; Control: Automatic Victory; +1 VP per controlled Battleground country in Region; +1 VP per country controlled that is adjacent to enemy superpower; MAY NOT BE HELD!" },
+  { number: 3, id: "mideastscoring", name: "Middle East Scoring", ops: 0, side: "Neutral", war: "Early", starred: false, optional: false, scoring: "MiddleEast", impl: "score:MiddleEast", text: "Presence: 3; Domination: 5; Control: 7; +1 VP per controlled Battleground country in Region; MAY NOT BE HELD!" },
+  { number: 4, id: "duckandcover", name: "Duck and Cover", ops: 3, side: "US", war: "Early", starred: false, optional: false, impl: "duckandcover", text: "Degrade the DEFCON level by 1. The US receives VP equal to 5 minus the current DEFCON level." },
+  { number: 5, id: "fiveyearplan", name: "Five Year Plan", ops: 3, side: "US", war: "Early", starred: false, optional: false, impl: "fiveyearplan", text: "The USSR must randomly discard a card. If the card has a US associated Event, the Event occurs immediately. If the card has a USSR associated Event or an Event applicable to both players, then the card must be discarded without triggering the Event." },
+  { number: 6, id: "thechinacard", name: "The China Card", ops: 4, side: "Neutral", war: "Early", starred: false, optional: false, impl: "noop", text: "This card begins the game with the USSR. When played, the player receives +1 Operations to the Operations value of this card if it uses all its Operations in Asia. It is passed to the opponent once played. A player receives 1 VP for holding this card at the end of Turn 10." },
+  { number: 7, id: "socialistgovs", name: "Socialist Governments", ops: 3, side: "USSR", war: "Early", starred: false, optional: false, impl: "socialistgovs", text: "Remove a total of 3 US Influence from any countries in Western Europe (removing no more than 2 Influence per country). This Event cannot be used after the “#83 – The Iron Lady” Event has been played." },
+  { number: 8, id: "fidel", name: "Fidel", ops: 2, side: "USSR", war: "Early", starred: true, optional: false, impl: "fidel", text: "Remove all US Influence from Cuba. USSR adds sufficient Influence in Cuba for Control." },
+  { number: 9, id: "vietnamrevolts", name: "Vietnam Revolts", ops: 2, side: "USSR", war: "Early", starred: true, optional: false, impl: "vietnamrevolts", text: "Add 2 USSR Influence to Vietnam. For the remainder of the turn, the USSR receives +1 Operations to the Operations value of a card that uses all its Operations in Southeast Asia." },
+  { number: 10, id: "blockade", name: "Blockade", ops: 1, side: "USSR", war: "Early", starred: true, optional: false, impl: "blockade", text: "Unless the US immediately discards a card with an Operations value of 3 or more, remove all US Influence from West Germany." },
+  { number: 11, id: "koreanwar", name: "Korean War", ops: 2, side: "USSR", war: "Early", starred: true, optional: false, impl: "koreanwar", text: "North Korea invades South Korea. Roll a die and subtract (-1) from the die roll for every US controlled country adjacent to South Korea. On a modified die roll of 4-6, the USSR receives 2 VP and replaces all US Influence in South Korea with USSR Influence. The USSR adds 2 to its Military Operations Track." },
+  { number: 12, id: "romanianabdication", name: "Romanian Abdication", ops: 1, side: "USSR", war: "Early", starred: true, optional: false, impl: "romanianabdication", text: "Remove all US Influence from Romania. The USSR adds sufficient Influence to Romania for Control." },
+  { number: 13, id: "arabisraeliwar", name: "Arab-Israeli War", ops: 2, side: "USSR", war: "Early", starred: false, optional: false, impl: "arabisraeliwar", text: "Pan-Arab Coalition invades Israel. Roll a die and subtract (-1) from the die roll for Israel, if it is US controlled, and for every US controlled country adjacent to Israel. On a modified die roll of 4-6, the USSR receives 2 VP and replaces all US Influence in Israel with USSR Influence. The USSR adds 2 to its Military Operations Track. This Event cannot be used after the “#65 – Camp David Accords” Event has been played." },
+  { number: 14, id: "comecon", name: "Comecon", ops: 3, side: "USSR", war: "Early", starred: true, optional: false, impl: "comecon", text: "Add 1 USSR Influence to each of 4 non-US controlled countries of Eastern Europe." },
+  { number: 15, id: "nasser", name: "Nasser", ops: 1, side: "USSR", war: "Early", starred: true, optional: false, impl: "nasser", text: "Add 2 USSR Influence to Egypt. The US removes half, rounded up, of its Influence from Egypt." },
+  { number: 16, id: "warsawpact", name: "Warsaw Pact Formed", ops: 3, side: "USSR", war: "Early", starred: true, optional: false, impl: "warsawpact", text: "Remove all US influence from 4 countries in Eastern Europe or add 5 USSR Influence to any countries in Eastern Europe (adding no more than 2 Influence per country). This Event allows the “#21 – NATO” card to be played as an Event." },
+  { number: 17, id: "degaulle", name: "De Gaulle Leads France", ops: 3, side: "USSR", war: "Early", starred: true, optional: false, impl: "degaulle", text: "Remove 2 US Influence from France and add 1 USSR Influence to France. This Event cancels the effect(s) of the “#21 – NATO” Event for France only." },
+  { number: 18, id: "capturednazi", name: "Captured Nazi Scientist", ops: 1, side: "Neutral", war: "Early", starred: true, optional: false, impl: "capturednazi", text: "Move the Space Race Marker ahead by 1 space." },
+  { number: 19, id: "trumandoctrine", name: "Truman Doctrine", ops: 1, side: "US", war: "Early", starred: true, optional: false, impl: "trumandoctrine", text: "Remove all USSR Influence from a single uncontrolled country in Europe." },
+  { number: 20, id: "olympicgames", name: "Olympic Games", ops: 2, side: "Neutral", war: "Early", starred: false, optional: false, impl: "olympicgames", text: "This player sponsors the Olympics. The opponent must either participate or boycott. If the opponent participates, each player rolls a die and the sponsor adds 2 to their roll. The player with the highest modified die roll receives 2 VP (reroll ties). If the opponent boycotts, degrade the DEFCON level by 1 and the sponsor may conduct Operations as if they played a 4 Ops card." },
+  { number: 21, id: "nato", name: "NATO", ops: 4, side: "US", war: "Early", starred: true, optional: false, impl: "nato", text: "The USSR cannot make Coup Attempts or Realignment rolls against any US controlled countries in Europe. US controlled countries in Europe cannot be attacked by play of the “#36 – Brush War” Event. This card requires prior play of either the “#16 – Warsaw Pact Formed” or “#23 – Marshall Plan” Event(s) in order to be played as an Event." },
+  { number: 22, id: "independentreds", name: "Independent Reds", ops: 2, side: "US", war: "Early", starred: true, optional: false, impl: "independentreds", text: "Add US Influence to either Yugoslavia, Romania, Bulgaria, Hungary, or Czechoslovakia so that it equals the USSR Influence in that country." },
+  { number: 23, id: "marshallplan", name: "Marshall Plan", ops: 4, side: "US", war: "Early", starred: true, optional: false, impl: "marshallplan", text: "Add 1 US Influence to each of any 7 non-USSR controlled countries in Western Europe. This Event allows the “#21 – NATO” card to be played as an Event." },
+  { number: 24, id: "indopakiwar", name: "Indo-Pakistani War", ops: 2, side: "Neutral", war: "Early", starred: false, optional: false, impl: "indopakiwar", text: "India invades Pakistan or vice versa (player’s choice). Roll a die and subtract (-1) from the die roll for every enemy controlled country adjacent to the target of the invasion (India or Pakistan). On a modified die roll of 4-6, the player receives 2 VP and replaces all the opponent’s Influence in the target country with their Influence. The player adds 2 to its Military Operations Track." },
+  { number: 25, id: "containment", name: "Containment", ops: 3, side: "US", war: "Early", starred: true, optional: false, impl: "containment", text: "All Operations cards played by the US, for the remainder of this turn, receive +1 to their Operations value (to a maximum of 4 Operations per card)." },
+  { number: 26, id: "ciacreated", name: "CIA Created", ops: 1, side: "US", war: "Early", starred: true, optional: false, impl: "ciacreated", text: "The USSR reveals their hand of cards for this turn. The US may use the Operations value of this card to conduct Operations." },
+  { number: 27, id: "usjapan", name: "US/Japan Mutual Defense Pact", ops: 4, side: "US", war: "Early", starred: true, optional: false, impl: "usjapan", text: "The US adds sufficient Influence to Japan for Control. The USSR cannot make Coup Attempts or Realignment rolls against Japan." },
+  { number: 28, id: "suezcrisis", name: "Suez Crisis", ops: 3, side: "USSR", war: "Early", starred: true, optional: false, impl: "suezcrisis", text: "Remove a total of 4 US Influence from France, the United Kingdom and Israel (removing no more than 2 Influence per country)." },
+  { number: 29, id: "easteurunrest", name: "East European Unrest", ops: 3, side: "US", war: "Early", starred: false, optional: false, impl: "easteurunrest", text: "Early or Mid War: Remove 1 USSR Influence from 3 countries in Eastern Europe. Late War: Remove 2 USSR Influence from 3 countries in Eastern Europe." },
+  { number: 30, id: "decolonization", name: "Decolonization", ops: 2, side: "USSR", war: "Early", starred: false, optional: false, impl: "decolonization", text: "Add 1 USSR Influence to each of any 4 countries in Africa and/or Southeast Asia." },
+  { number: 31, id: "redscare", name: "Red Scare/Purge", ops: 4, side: "Neutral", war: "Early", starred: false, optional: false, impl: "redscare", text: "All Operations cards played by the opponent, for the remainder of this turn, receive -1 to their Operations value (to a minimum value of 1 Operations point)." },
+  { number: 32, id: "unintervention", name: "UN Intervention", ops: 1, side: "Neutral", war: "Early", starred: false, optional: false, impl: "unintervention", text: "Play this card simultaneously with a card containing an opponent’s associated Event. The opponent’s associated Event is canceled but you may use the Operations value of the opponent’s card to conduct Operations. This Event cannot be played during the Headline Phase." },
+  { number: 33, id: "destalinization", name: "De-Stalinization", ops: 3, side: "USSR", war: "Early", starred: true, optional: false, impl: "destalinization", text: "The USSR may reallocate up to a total of 4 Influence from one or more countries to any non-US controlled countries (adding no more than 2 Influence per country)." },
+  { number: 34, id: "nucleartestban", name: "Nuclear Test Ban", ops: 4, side: "Neutral", war: "Early", starred: false, optional: false, impl: "nucleartestban", text: "The player receives VP equal to the current DEFCON level minus 2 then improves the DEFCON level by 2." },
+  { number: 35, id: "formosan", name: "Formosan Resolution", ops: 2, side: "US", war: "Early", starred: true, optional: false, impl: "formosan", text: "If this card’s Event is in effect, Taiwan will be treated as a Battleground country, for scoring purposes only, if Taiwan is US controlled when the Asia Scoring Card is played. This Event is cancelled after the US has played the “#6 – The China Card” card." },
+  { number: 103, id: "defectors", name: "Defectors", ops: 2, side: "US", war: "Early", starred: false, optional: false, impl: "defectors", text: "The US may play this card during the Headline Phase in order to cancel the USSR Headline Event (including a scoring card). The canceled card is placed into the discard pile. If this card is played by the USSR during its action round, the US gains 1 VP." },
+  { number: 36, id: "brushwar", name: "Brush War", ops: 3, side: "Neutral", war: "Mid", starred: false, optional: false, impl: "brushwar", text: "The player attacks any country with a stability number of 1 or 2. Roll a die and subtract (-1) from the die roll for every adjacent enemy controlled country. On a modified die roll of 3-6, the player receives 1 VP and replaces all the opponent’s Influence in the target country with their Influence. The player adds 3 to its Military Operations Track." },
+  { number: 37, id: "camscoring", name: "Central America Scoring", ops: 0, side: "Neutral", war: "Mid", starred: false, optional: false, scoring: "CentralAmerica", impl: "score:CentralAmerica", text: "Presence: 1; Domination: 3; Control: 5; +1 VP per controlled Battleground country in Region; +1 VP per country controlled that is adjacent to enemy superpower; MAY NOT BE HELD!" },
+  { number: 38, id: "seascoring", name: "Southeast Asia Scoring", ops: 0, side: "Neutral", war: "Mid", starred: true, optional: false, scoring: "SoutheastAsia", impl: "score:SoutheastAsia", text: "1 VP each for Control of Burma, Cambodia/Laos, Vietnam, Malaysia, Indonesia and the Philippines. 2 VP for Control of Thailand; MAY NOT BE HELD!" },
+  { number: 39, id: "armsrace", name: "Arms Race", ops: 3, side: "Neutral", war: "Mid", starred: false, optional: false, impl: "armsrace", text: "Compare each player’s value on the Military Operations Track. If the phasing player has a higher value than their opponent on the Military Operations Track, that player receives 1 VP. If the phasing player has a higher value than their opponent, and has met the “required” amount, on the Military Operations Track, that player receives 3 VP instead." },
+  { number: 40, id: "cubanmissile", name: "Cuban Missile Crisis", ops: 3, side: "USSR", war: "Mid", starred: true, optional: false, impl: "cubanmissile", text: "Set the DEFCON level to 2. Any Coup Attempts by your opponent, for the remainder of this turn, will result in Global Thermonuclear War. Your opponent will lose the game. This card’s Event may be canceled, at any time, if the USSR removes 2 Influence from Cuba or the US removes 2 Influence from West Germany or Turkey." },
+  { number: 41, id: "nuclearsubs", name: "Nuclear Subs", ops: 2, side: "US", war: "Mid", starred: true, optional: false, impl: "nuclearsubs", text: "US Operations used for Coup Attempts in Battleground countries, for the remainder of this turn, do not degrade the DEFCON level. This card’s Event does not apply to any Event that would affect the DEFCON level (ex. the “#40 – Cuban Missile Crisis” Event)." },
+  { number: 42, id: "quagmire", name: "Quagmire", ops: 3, side: "USSR", war: "Mid", starred: true, optional: false, impl: "quagmire", text: "On the US’s next action round, it must discard an Operations card with a value of 2 or more and roll 1-4 on a die to cancel this Event. Repeat this Event for each US action round until the US successfully rolls 1-4 on a die. If the US is unable to discard an Operations card, it must play all of its scoring cards and then skip each action round for the rest of the turn. This Event cancels the effect(s) of the “#106 – NORAD” Event (if applicable)." },
+  { number: 43, id: "salt", name: "SALT Negotiations", ops: 3, side: "Neutral", war: "Mid", starred: true, optional: false, impl: "salt", text: "Improve the DEFCON level by 2. For the remainder of the turn, both players receive -1 to all Coup Attempt rolls. The player of this card’s Event may look through the discard pile, pick any 1 non-scoring card, reveal it to their opponent and then place the drawn card into their hand." },
+  { number: 44, id: "beartrap", name: "Bear Trap", ops: 3, side: "US", war: "Mid", starred: true, optional: false, impl: "beartrap", text: "On the USSR’s next action round, it must discard an Operations card with a value of 2 or more and roll 1-4 on a die to cancel this Event. Repeat this Event for each USSR action round until the USSR successfully rolls 1-4 on a die. If the USSR is unable to discard an Operations card, it must play all of its scoring cards and then skip each action round for the rest of the turn." },
+  { number: 45, id: "summit", name: "Summit", ops: 1, side: "Neutral", war: "Mid", starred: false, optional: false, impl: "summit", text: "Both players roll a die. Each player receives +1 to the die roll for each Region (Europe, Asia, etc.) they Dominate or Control. The player with the highest modified die roll receives 2 VP and may degrade or improve the DEFCON level by 1 (do not reroll ties)." },
+  { number: 46, id: "worrying", name: "How I Learned to Stop Worrying", ops: 2, side: "Neutral", war: "Mid", starred: true, optional: false, impl: "worrying", text: "Set the DEFCON level to any level desired (1-5). The player adds 5 to its Military Operations Track." },
+  { number: 47, id: "junta", name: "Junta", ops: 2, side: "Neutral", war: "Mid", starred: false, optional: false, impl: "junta", text: "Add 2 Influence to a single country in Central or South America. The player may make free Coup Attempts or Realignment rolls in either Central or South America using the Operations value of this card." },
+  { number: 48, id: "kitchendebates", name: "Kitchen Debates", ops: 1, side: "US", war: "Mid", starred: true, optional: false, impl: "kitchendebates", text: "If the US controls more Battleground countries than the USSR, the US player uses this Event to poke their opponent in the chest and receive 2 VP!" },
+  { number: 49, id: "missileenvy", name: "Missile Envy", ops: 2, side: "Neutral", war: "Mid", starred: false, optional: false, impl: "missileenvy", text: "Exchange this card for your opponent’s highest value Operations card. If 2 or more cards are tied, opponent chooses. If the exchanged card contains an Event applicable to yourself or both players, it occurs immediately. If it contains an opponent’s Event, use the Operations value (no Event). The opponent must use this card for Operations during their next action round." },
+  { number: 50, id: "wewillburyyou", name: "“We Will Bury You”", ops: 4, side: "USSR", war: "Mid", starred: true, optional: false, impl: "wewillburyyou", text: "Degrade the DEFCON level by 1. Unless the #32 UN Intervention card is played as an Event on the US’s next action round, the USSR receives 3 VP." },
+  { number: 51, id: "brezhnev", name: "Brezhnev Doctrine", ops: 3, side: "USSR", war: "Mid", starred: true, optional: false, impl: "brezhnev", text: "All Operations cards played by the USSR, for the remainder of this turn, receive +1 to their Operations value (to a maximum of 4 Operations per card)." },
+  { number: 52, id: "portugalempire", name: "Portuguese Empire Crumbles", ops: 2, side: "USSR", war: "Mid", starred: true, optional: false, impl: "portugalempire", text: "Add 2 USSR Influence to Angola and the SE African States." },
+  { number: 53, id: "southafricanunrest", name: "South African Unrest", ops: 2, side: "USSR", war: "Mid", starred: false, optional: false, impl: "southafricanunrest", text: "The USSR either adds 2 Influence to South Africa or adds 1 Influence to South Africa and 2 Influence to a single country adjacent to South Africa." },
+  { number: 54, id: "allende", name: "Allende", ops: 1, side: "USSR", war: "Mid", starred: true, optional: false, impl: "allende", text: "Add 2 USSR Influence to Chile." },
+  { number: 55, id: "willybrandt", name: "Willy Brandt", ops: 2, side: "USSR", war: "Mid", starred: true, optional: false, impl: "willybrandt", text: "The USSR receives 1 VP and adds 1 Influence to West Germany. This Event cancels the effect(s) of the “#21 – NATO” Event for West Germany only. This Event is prevented / canceled by the “#96 – Tear Down this Wall” Event." },
+  { number: 56, id: "muslimrevolution", name: "Muslim Revolution", ops: 4, side: "USSR", war: "Mid", starred: false, optional: false, impl: "muslimrevolution", text: "Remove all US Influence from 2 of the following countries: Sudan, Iran, Iraq, Egypt, Libya, Saudi Arabia, Syria, Jordan. This Event cannot be used after the “#110 – AWACS Sale to Saudis” Event has been played." },
+  { number: 57, id: "abm", name: "ABM Treaty", ops: 4, side: "Neutral", war: "Mid", starred: false, optional: false, impl: "abm", text: "Improve the DEFCON level by 1 and then conduct Operations using the Operations value of this card." },
+  { number: 58, id: "culturalrevolution", name: "Cultural Revolution", ops: 3, side: "USSR", war: "Mid", starred: true, optional: false, impl: "culturalrevolution", text: "If the US has the “#6 – The China Card” card, the US must give the card to the USSR (face up and available to be played). If the USSR already has “#6 – The China Card” card, the USSR receives 1 VP." },
+  { number: 59, id: "flowerpower", name: "Flower Power", ops: 4, side: "USSR", war: "Mid", starred: true, optional: false, impl: "flowerpower", text: "The USSR receives 2 VP for every US played “War” card (Arab-Israeli War, Korean War, Brush War, Indo-Pakistani War, Iran-Iraq War), used for Operations or an Event, after this card is played. This Event is prevented / canceled by the “#97 – ‘An Evil Empire’” Event." },
+  { number: 60, id: "u2incident", name: "U2 Incident", ops: 3, side: "USSR", war: "Mid", starred: true, optional: false, impl: "u2incident", text: "The USSR receives 1 VP. If the “#32 – UN Intervention” Event is played later this turn, either by the US or the USSR, the USSR receives an additional 1 VP." },
+  { number: 61, id: "opec", name: "OPEC", ops: 3, side: "USSR", war: "Mid", starred: false, optional: false, impl: "opec", text: "The USSR receives 1 VP for Control of each of the following countries: Egypt, Iran, Libya, Saudi Arabia, Iraq, Gulf States, Venezuela. This Event cannot be used after the “#86 – North Sea Oil” Event has been played." },
+  { number: 62, id: "lonegunman", name: "“Lone Gunman”", ops: 1, side: "USSR", war: "Mid", starred: true, optional: false, impl: "lonegunman", text: "The US reveals their hand of cards. The USSR may use the Operations value of this card to conduct Operations." },
+  { number: 63, id: "colonialrearguards", name: "Colonial Rear Guards", ops: 2, side: "US", war: "Mid", starred: false, optional: false, impl: "colonialrearguards", text: "Add 1 US Influence to each of any 4 countries in Africa and/or Southeast Asia." },
+  { number: 64, id: "panamacanal", name: "Panama Canal Returned", ops: 1, side: "US", war: "Mid", starred: true, optional: false, impl: "panamacanal", text: "Add 1 US Influence to Panama, Costa Rica and Venezuela." },
+  { number: 65, id: "campdavid", name: "Camp David Accords", ops: 2, side: "US", war: "Mid", starred: true, optional: false, impl: "campdavid", text: "The US receives 1 VP and adds 1 Influence to Israel, Jordan and Egypt. This Event prevents the “#13 – Arab-Israeli War” card from being played as an Event." },
+  { number: 66, id: "puppetgovs", name: "Puppet Governments", ops: 2, side: "US", war: "Mid", starred: true, optional: false, impl: "puppetgovs", text: "The US may add 1 Influence to 3 countries that do not contain Influence from either the US or USSR." },
+  { number: 67, id: "grainsales", name: "Grain Sales to Soviets", ops: 2, side: "US", war: "Mid", starred: false, optional: false, impl: "grainsales", text: "The US randomly selects 1 card from the USSR’s hand (if available). The US must either play the card or return it to the USSR. If the card is returned, or the USSR has no cards, the US may use the Operations value of this card to conduct Operations." },
+  { number: 68, id: "johnpaul", name: "John Paul II Elected Pope", ops: 2, side: "US", war: "Mid", starred: true, optional: false, impl: "johnpaul", text: "Remove 2 USSR Influence from Poland and add 1 US Influence to Poland. This Event allows the “#101 – Solidarity” card to be played as an Event." },
+  { number: 69, id: "deathsquads", name: "Latin American Death Squads", ops: 2, side: "Neutral", war: "Mid", starred: false, optional: false, impl: "deathsquads", text: "All of the phasing player’s Coup Attempts in Central and South America, for the remainder of this turn, receive +1 to their die roll. All of the opponent’s Coup Attempts in Central and South America, for the remainder of this turn, receive -1 to their die roll." },
+  { number: 70, id: "oasfounded", name: "OAS Founded", ops: 1, side: "US", war: "Mid", starred: true, optional: false, impl: "oasfounded", text: "Add a total of 2 US Influence to any countries in Central or South America." },
+  { number: 71, id: "nixonchina", name: "Nixon Plays the China Card", ops: 2, side: "US", war: "Mid", starred: true, optional: false, impl: "nixonchina", text: "If the USSR has the “#6 – The China Card” card, the USSR must give the card to the US (face down and unavailable for immediate play). If the US already has the “#6 – The China Card” card, the US receives 2 VP." },
+  { number: 72, id: "sadatexpels", name: "Sadat Expels Soviets", ops: 1, side: "US", war: "Mid", starred: true, optional: false, impl: "sadatexpels", text: "Remove all USSR Influence from Egypt and add 1 US Influence to Egypt." },
+  { number: 73, id: "shuttlediplomacy", name: "Shuttle Diplomacy", ops: 3, side: "US", war: "Mid", starred: false, optional: false, impl: "shuttlediplomacy", text: "If this card’s Event is in effect, subtract (-1) a Battleground country from the USSR total and then discard this card during the next scoring of the Middle East or Asia (which ever comes first)." },
+  { number: 74, id: "voiceofamerica", name: "The Voice of America", ops: 2, side: "US", war: "Mid", starred: false, optional: false, impl: "voiceofamerica", text: "Remove 4 USSR Influence from any countries NOT in Europe (removing no more than 2 Influence per country)." },
+  { number: 75, id: "liberationtheology", name: "Liberation Theology", ops: 2, side: "USSR", war: "Mid", starred: false, optional: false, impl: "liberationtheology", text: "Add a total of 3 USSR Influence to any countries in Central America (adding no more than 2 Influence per country)." },
+  { number: 76, id: "ussuri", name: "Ussuri River Skirmish", ops: 3, side: "US", war: "Mid", starred: true, optional: false, impl: "ussuri", text: "If the USSR has the “#6 – The China Card” card, the USSR must give the card to the US (face up and available for play). If the US already has the “#6 – The China Card” card, add a total of 4 US Influence to any countries in Asia (adding no more than 2 Influence per country)." },
+  { number: 77, id: "asknot", name: "“Ask Not What Your Country…”", ops: 3, side: "US", war: "Mid", starred: true, optional: false, impl: "asknot", text: "The US may discard up to their entire hand of cards (including scoring cards) to the discard pile and draw replacements from the draw pile. The number of cards to be discarded must be decided before drawing any replacement cards from the draw pile." },
+  { number: 78, id: "allianceforprogress", name: "Alliance for Progress", ops: 3, side: "US", war: "Mid", starred: true, optional: false, impl: "allianceforprogress", text: "The US receives 1 VP for each US controlled Battleground country in Central and South America." },
+  { number: 79, id: "africascoring", name: "Africa Scoring", ops: 0, side: "Neutral", war: "Mid", starred: false, optional: false, scoring: "Africa", impl: "score:Africa", text: "Presence: 1; Domination: 4; Control: 6; +1 VP per controlled Battleground country in Region; MAY NOT BE HELD!" },
+  { number: 80, id: "onesmallstep", name: "“One Small Step…”", ops: 2, side: "Neutral", war: "Mid", starred: false, optional: false, impl: "onesmallstep", text: "If you are behind on the Space Race Track, the player uses this Event to move their marker 2 spaces forward on the Space Race Track. The player receives VP only from the final space moved into." },
+  { number: 81, id: "sascoring", name: "South America Scoring", ops: 0, side: "Neutral", war: "Mid", starred: false, optional: false, scoring: "SouthAmerica", impl: "score:SouthAmerica", text: "Presence: 2; Domination: 5; Control: 6; +1 VP per controlled Battleground country in Region; MAY NOT BE HELD!" },
+  { number: 82, id: "iranianhostage", name: "Iranian Hostage Crisis", ops: 3, side: "USSR", war: "Late", starred: true, optional: false, impl: "iranianhostage", text: "Remove all US Influence and add 2 USSR Influence to Iran. This card’s Event requires the US to discard 2 cards, instead of 1 card, if the “#92 – Terrorism” Event is played." },
+  { number: 83, id: "ironlady", name: "The Iron Lady", ops: 3, side: "US", war: "Late", starred: true, optional: false, impl: "ironlady", text: "Add 1 USSR Influence to Argentina and remove all USSR Influence from the United Kingdom. The US receives 1 VP. This Event prevents the “#7 – Socialist Governments” card from being played as an Event." },
+  { number: 84, id: "reaganlibya", name: "Reagan Bombs Libya", ops: 2, side: "US", war: "Late", starred: true, optional: false, impl: "reaganlibya", text: "The US receives 1 VP for every 2 USSR Influence in Libya." },
+  { number: 85, id: "starwars", name: "Star Wars", ops: 2, side: "US", war: "Late", starred: true, optional: false, impl: "starwars", text: "If the US is ahead on the Space Race Track, the US player uses this Event to look through the discard pile, pick any 1 non-scoring card and play it immediately as an Event." },
+  { number: 86, id: "northseaoil", name: "North Sea Oil", ops: 3, side: "US", war: "Late", starred: true, optional: false, impl: "northseaoil", text: "The US may play 8 cards (in 8 action rounds) for this turn only. This Event prevents the “#61 – OPEC” card from being played as an Event." },
+  { number: 87, id: "reformer", name: "The Reformer", ops: 3, side: "USSR", war: "Late", starred: true, optional: false, impl: "reformer", text: "Add 4 USSR Influence to Europe (adding no more than 2 Influence per country). If the USSR is ahead of the US in VP, 6 Influence may be added to Europe instead. The USSR may no longer make Coup Attempts in Europe." },
+  { number: 88, id: "marinebarracks", name: "Marine Barracks Bombing", ops: 2, side: "USSR", war: "Late", starred: true, optional: false, impl: "marinebarracks", text: "Remove all US Influence in Lebanon and remove a total of 2 US Influence from any countries in the Middle East." },
+  { number: 89, id: "kal007", name: "Soviets Shoot Down KAL-007", ops: 4, side: "US", war: "Late", starred: true, optional: false, impl: "kal007", text: "Degrade the DEFCON level by 1 and the US receives 2 VP. The US may place influence or make Realignment rolls, using this card, if South Korea is US controlled." },
+  { number: 90, id: "glasnost", name: "Glasnost", ops: 4, side: "USSR", war: "Late", starred: true, optional: false, impl: "glasnost", text: "Improve the DEFCON level by 1 and the USSR receives 2 VP. The USSR may make Realignment rolls or add Influence, using this card, if the “#87 – The Reformer” Event has already been played." },
+  { number: 91, id: "ortega", name: "Ortega Elected in Nicaragua", ops: 2, side: "USSR", war: "Late", starred: true, optional: false, impl: "ortega", text: "Remove all US Influence from Nicaragua. The USSR may make a free Coup Attempt, using this card’s Operations value, in a country adjacent to Nicaragua." },
+  { number: 92, id: "terrorism", name: "Terrorism", ops: 2, side: "USSR", war: "Late", starred: false, optional: false, impl: "terrorism", text: "The player’s opponent must randomly discard 1 card from their hand. If the “#82 – Iranian Hostage Crisis” Event has already been played, a US player (if applicable) must randomly discard 2 cards from their hand." },
+  { number: 93, id: "irancontra", name: "Iran-Contra Scandal", ops: 2, side: "USSR", war: "Late", starred: true, optional: false, impl: "irancontra", text: "All US Realignment rolls, for the remainder of this turn, receive -1 to their die roll." },
+  { number: 94, id: "chernobyl", name: "Chernobyl", ops: 3, side: "US", war: "Late", starred: true, optional: false, impl: "chernobyl", text: "The US must designate a single Region (Europe, Asia, etc.) that, for the remainder of the turn, the USSR cannot add Influence to using Operations points." },
+  { number: 95, id: "debtcrisis", name: "Latin American Debt Crisis", ops: 2, side: "USSR", war: "Late", starred: false, optional: false, impl: "debtcrisis", text: "The US must immediately discard a card with an Operations value of 3 or more or the USSR may double the amount of USSR Influence in 2 countries in South America." },
+  { number: 96, id: "teardown", name: "Tear Down this Wall", ops: 3, side: "US", war: "Late", starred: true, optional: false, impl: "teardown", text: "Add 3 US Influence to East Germany. The US may make free Coup Attempts or Realignment rolls in Europe using the Operations value of this card. This Event prevents / cancels the effect(s) of the “#55 – Willy Brandt” Event." },
+  { number: 97, id: "evilempire", name: "“An Evil Empire”", ops: 3, side: "US", war: "Late", starred: true, optional: false, impl: "evilempire", text: "The US receives 1 VP. This Event prevents / cancels the effect(s) of the “#59 – Flower Power” Event." },
+  { number: 98, id: "aldrichames", name: "Aldrich Ames Remix", ops: 3, side: "USSR", war: "Late", starred: true, optional: false, impl: "aldrichames", text: "The US reveals their hand of cards, face-up, for the remainder of the turn and the USSR discards a card from the US hand." },
+  { number: 99, id: "pershing2", name: "Pershing II Deployed", ops: 3, side: "USSR", war: "Late", starred: true, optional: false, impl: "pershing2", text: "The USSR receives 1 VP. Remove 1 US Influence from any 3 countries in Western Europe." },
+  { number: 100, id: "wargames", name: "Wargames", ops: 4, side: "Neutral", war: "Late", starred: true, optional: false, impl: "wargames", text: "If the DEFCON level is 2, the player may immediately end the game after giving their opponent 6 VP. How about a nice game of chess?" },
+  { number: 101, id: "solidarity", name: "Solidarity", ops: 2, side: "US", war: "Late", starred: true, optional: false, impl: "solidarity", text: "Add 3 US Influence to Poland. This card requires prior play of the “#68 – John Paul II Elected Pope” Event in order to be played as an Event." },
+  { number: 102, id: "iraniraqwar", name: "Iran-Iraq War", ops: 2, side: "Neutral", war: "Late", starred: true, optional: false, impl: "iraniraqwar", text: "Iran invades Iraq or vice versa (player’s choice). Roll a die and subtract (-1) from the die roll for every enemy controlled country adjacent to the target of the invasion (Iran or Iraq). On a modified die roll of 4-6, the player receives 2 VP and replaces all the opponent’s Influence in the target country with their Influence. The player adds 2 to its Military Operations Track." },
+  { number: 104, id: "optional-cambridgefive", name: "The Cambridge Five", ops: 2, side: "USSR", war: "Mid", starred: false, optional: true, impl: "cambridgefive", text: "The US reveals all scoring cards in their hand of cards. The USSR player may add 1 USSR Influence to a single Region named on one of the revealed scoring cards. This card can not be played as an Event during the Late War." },
+  { number: 105, id: "optional-specialrelationship", name: "Special Relationship", ops: 2, side: "US", war: "Mid", starred: false, optional: true, impl: "specialrelationship", text: "Add 1 US Influence to a single country adjacent to the U.K. if the U.K. is US-controlled but NATO is not in effect. Add 2 US Influence to a single country in Western Europe, and the US gains 2 VP, if the U.K. is US-controlled and NATO is in effect." },
+  { number: 106, id: "optional-norad", name: "NORAD", ops: 3, side: "US", war: "Mid", starred: true, optional: true, impl: "norad", text: "Add 1 US Influence to a single country containing US Influence, at the end of each Action Round, if Canada is US-controlled and the DEFCON level moved to 2 during that Action Round. This Event is canceled by the “#42 – Quagmire” Event." },
+  { number: 107, id: "optional-che", name: "Che", ops: 3, side: "USSR", war: "Mid", starred: false, optional: true, impl: "che", text: "The USSR may perform a Coup Attempt, using this card’s Operations value, against a non-Battleground country in Central America, South America or Africa. The USSR may perform a second Coup Attempt, against a different non-Battleground country in Central America, South America or Africa, if the first Coup Attempt removed any US Influence from the target country." },
+  { number: 108, id: "optional-ourmanintehran", name: "Our Man in Tehran", ops: 2, side: "US", war: "Mid", starred: true, optional: true, impl: "ourmanintehran", text: "If the US controls at least one Middle East country, the US player uses this Event to draw the top 5 cards from the draw pile. The US may discard any or all of the drawn cards, after revealing the discarded card(s) to the USSR player, without triggering the Event(s). Any remaining drawn cards are returned to the draw pile and the draw pile is reshuffled." },
+  { number: 109, id: "optional-yuriandsamantha", name: "Yuri and Samantha", ops: 2, side: "USSR", war: "Mid", starred: true, optional: true, impl: "yuriandsamantha", text: "The USSR receives 1 VP for each US Coup Attempt performed during the remainder of the Turn." },
+  { number: 110, id: "optional-awacs", name: "AWACS Sale to Saudis", ops: 3, side: "US", war: "Mid", starred: true, optional: true, impl: "awacs", text: "Add 2 US Influence to Saudi Arabia. This Event prevents the “#56 – Muslim Revolution” card from being played as an Event." },
 ];
 
-export const CARD_BY_ID: Record<string, CardDef> = Object.fromEntries(
-  CARDS.map((card) => [card.id, card]),
-);
+export const CARDS: CardDef[] = ALL_CARDS.filter((card) => card.id !== CHINA_CARD_ID);
+export const CARD_BY_ID: Record<string, CardDef> = Object.fromEntries(ALL_CARDS.map((card) => [card.id, card]));
 
 export function getCard(id: string): CardDef {
-  const c = CARD_BY_ID[id];
-  if (!c) throw new Error(`Unknown card: ${id}`);
-  return c;
+  const card = CARD_BY_ID[id];
+  if (!card) throw new Error(`Unknown card: ${id}`);
+  return card;
 }
 
 export function isScoring(id: string): boolean {
   return !!CARD_BY_ID[id]?.scoring;
 }
 
-export const SCORING_CARDS = CARDS.filter((c) => c.scoring).map((c) => c.id);
-
-// The China Card is not part of any deck pile; held separately.
-export const CHINA_CARD_ID = 'thechinacard';
-export const CHINA_CARD: CardDef = {
-  id: CHINA_CARD_ID,
-  name: 'The China Card',
-  ops: 4,
-  side: 'Neutral',
-  war: 'Early',
-  starred: false,
-  impl: 'noop',
-  text: 'Play as 4 Ops (5 if all spent in Asia). Passed face-down to opponent when played.',
-};
+export const SCORING_CARDS = ALL_CARDS.filter((card) => card.scoring).map((card) => card.id);
+export const CHINA_CARD: CardDef = getCard(CHINA_CARD_ID);
 
 export function warCards(): CardDef[] {
-  return CARDS.filter((c) => c.impl === 'war');
+  return ALL_CARDS.filter((card) => ['koreanwar', 'arabisraeliwar', 'indopakiwar', 'brushwar', 'iraniraqwar'].includes(card.id));
 }

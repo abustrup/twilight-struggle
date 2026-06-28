@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useGame, type Mode } from './ui/useGame';
 import { Tracks, Board, Hand, Log, startInf } from './ui/components';
+import { clearStoredSave, loadFromStorage, saveToStorage, type RestoredSave } from './ui/persistence';
 import type { Side } from './engine/data/cards';
 import { getCard, isScoring } from './engine/data/cards';
 import { COUNTRIES } from './engine/data/map';
@@ -10,39 +11,73 @@ import { canRealign } from './engine/ops/realignment';
 import { canAttemptSpace } from './engine/ops/spacerace';
 import type { Action } from './engine/core/reducer';
 import type { Placement } from './engine/ops/influence';
+import type { GameState } from './engine/state/types';
 
 type OpType = 'influence' | 'coup' | 'realign' | 'space';
 
 export function App() {
   const [mode, setMode] = useState<Mode | null>(null);
   const [humanSide, setHumanSide] = useState<Side>('US');
-  if (!mode) return <Menu onPick={(m, s) => { setMode(m); setHumanSide(s); }} />;
-  return <Game mode={mode} humanSide={humanSide} onExit={() => setMode(null)} />;
+  const [initialState, setInitialState] = useState<GameState | undefined>(undefined);
+  const [storedSave, setStoredSave] = useState<RestoredSave | null>(() => {
+    try { return loadFromStorage(); } catch { return null; }
+  });
+  if (!mode) {
+    return (
+      <Menu
+        storedSave={storedSave}
+        onResume={() => {
+          if (!storedSave) return;
+          setMode(storedSave.mode);
+          setHumanSide(storedSave.humanSide);
+          setInitialState(storedSave.state);
+        }}
+        onPick={(m, s) => {
+          clearStoredSave();
+          setStoredSave(null);
+          setInitialState(undefined);
+          setMode(m);
+          setHumanSide(s);
+        }}
+      />
+    );
+  }
+  return <Game mode={mode} humanSide={humanSide} initialState={initialState} onExit={() => { setStoredSave(loadFromStorage()); setMode(null); }} />;
 }
 
-function Menu({ onPick }: { onPick: (m: Mode, s: Side) => void }) {
+function Menu({
+  storedSave,
+  onResume,
+  onPick,
+}: {
+  storedSave: RestoredSave | null;
+  onResume: () => void;
+  onPick: (m: Mode, s: Side) => void;
+}) {
   return (
     <div className="menu">
       <h1>Twilight Struggle</h1>
-      <p className="subtitle">Digital Edition</p>
+      <p className="subtitle">The Cold War 1945–1989</p>
       <div className="menu-buttons">
+        {storedSave && <button onClick={onResume}>Continue Saved Game</button>}
         <button onClick={() => onPick('hotseat', 'US')}>Hotseat (2 players)</button>
-        <button onClick={() => onPick('vsAI', 'US')}>Play vs AI — as US</button>
-        <button onClick={() => onPick('vsAI', 'USSR')}>Play vs AI — as USSR</button>
+        <button onClick={() => onPick('vsAI', 'US')}>Play vs AI – as US</button>
+        <button onClick={() => onPick('vsAI', 'USSR')}>Play vs AI – as USSR</button>
       </div>
       <div className="menu-note">
         A working build of the core board game: full map, the 110-card deck,
         Influence / Coups / Realignments / Space Race, DEFCON, Military Ops,
-        region scoring, headline + action rounds, and 10-turn victory.
-        Early War card events are implemented; Mid/Late events currently resolve
-        via Ops (their text shows on hover).
+        region scoring, headline + action rounds, local saves, AI play, and
+        10-turn victory. Card events are registered across Early, Mid, Late, and
+        Optional cards, with deterministic target choices where the UI does not
+        yet ask for a specific target.
       </div>
     </div>
   );
 }
 
-function Game({ mode, humanSide, onExit }: { mode: Mode; humanSide: Side; onExit: () => void }) {
-  const { state, dispatch, perspective, aiSide, restart } = useGame(mode, humanSide);
+function Game({ mode, humanSide, initialState, onExit }: { mode: Mode; humanSide: Side; initialState?: GameState; onExit: () => void }) {
+  const { state, dispatch, perspective, aiSide, restart } = useGame(mode, humanSide, initialState);
 
   const [selCard, setSelCard] = useState<string | null>(null);
   const [opType, setOpType] = useState<OpType | null>(null);
@@ -52,6 +87,10 @@ function Game({ mode, humanSide, onExit }: { mode: Mode; humanSide: Side; onExit
   const p = state.pending;
   const myTurn = state.awaiting === perspective && !state.over;
   const budget = p?.amount ?? 0;
+
+  useEffect(() => {
+    saveToStorage(state, mode, humanSide);
+  }, [state, mode, humanSide]);
 
   // reset interaction state whenever the pending target changes
   const key = `${state.turn}-${state.actionRound}-${state.phasing}-${p?.kind}-${(p as { meta?: { cardId?: string } })?.meta?.cardId ?? ''}`;
@@ -157,7 +196,7 @@ function Game({ mode, humanSide, onExit }: { mode: Mode; humanSide: Side; onExit
       <header className="app-header">
         <button className="exit" onClick={onExit}>← Menu</button>
         <Tracks state={state} />
-        <button className="exit" onClick={() => restart()}>↻ Restart</button>
+        <button className="exit" onClick={() => { clearStoredSave(); restart(); }}>↻ Restart</button>
       </header>
 
       <main className="main">
@@ -204,7 +243,7 @@ function Game({ mode, humanSide, onExit }: { mode: Mode; humanSide: Side; onExit
                     <button onClick={() => setOpType('influence')}>Place Influence</button>
                     <button onClick={() => setOpType('coup')}>Coup</button>
                     <button onClick={() => setOpType('realign')}>Realignment</button>
-                    <button disabled={!canAttemptSpace(state, perspective)} onClick={space}>Space Race</button>
+                    <button disabled={!canAttemptSpace(state, perspective, budget)} onClick={space}>Space Race</button>
                   </div>
                 )}
                 {opType === 'influence' && (
@@ -238,7 +277,7 @@ function Game({ mode, humanSide, onExit }: { mode: Mode; humanSide: Side; onExit
 
       <footer className="hand-area">
         <div className="hand-label">
-          {mode === 'vsAI' ? `Your hand (${perspective})` : `Hand — ${perspective}`}
+          {mode === 'vsAI' ? `Your hand (${perspective})` : `Hand – ${perspective}`}
           {aiSide && state.awaiting === aiSide && <span className="thinking"> · AI thinking…</span>}
           {mode === 'hotseat' && !state.over && <span className="thinking"> · (pass device to {perspective})</span>}
         </div>

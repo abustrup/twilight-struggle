@@ -36,6 +36,21 @@ describe('engine', () => {
     }
   }, 60000);
 
+  it('completes a broader seeded playthrough sweep', () => {
+    const seeds = Array.from({ length: 50 }, (_, i) => i + 1);
+    for (const seed of seeds) {
+      const end = autoplay(seed);
+      expect(end.over, `seed ${seed}`).not.toBeNull();
+      for (const [countryId, inf] of Object.entries(end.countries)) {
+        expect(inf.us, `${seed} ${countryId} US influence`).toBeGreaterThanOrEqual(0);
+        expect(inf.ussr, `${seed} ${countryId} USSR influence`).toBeGreaterThanOrEqual(0);
+      }
+      expect(Math.abs(end.vp), `seed ${seed} VP`).toBeLessThanOrEqual(20);
+      expect(end.defcon, `seed ${seed} DEFCON low`).toBeGreaterThanOrEqual(1);
+      expect(end.defcon, `seed ${seed} DEFCON high`).toBeLessThanOrEqual(5);
+    }
+  }, 60000);
+
   it('respects VP bounds and DEFCON range throughout', () => {
     const end = autoplay(5);
     expect(Math.abs(end.vp)).toBeLessThanOrEqual(20);
