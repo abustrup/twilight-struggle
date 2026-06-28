@@ -15,8 +15,8 @@ export interface GameApi {
   restart: (seed?: number) => void;
 }
 
-export function useGame(mode: Mode, humanSide: Side = 'US'): GameApi {
-  const [state, setState] = useState<GameState>(() => createGame());
+export function useGame(mode: Mode, humanSide: Side = 'US', initialState?: GameState): GameApi {
+  const [state, setState] = useState<GameState>(() => initialState ?? createGame());
   const aiSide: Side | null = mode === 'vsAI' ? (humanSide === 'US' ? 'USSR' : 'US') : null;
   const perspective: Side = mode === 'vsAI' ? humanSide : (state.awaiting ?? 'US');
 

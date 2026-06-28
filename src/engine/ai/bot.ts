@@ -1,5 +1,5 @@
 // ============================================================================
-// bot.ts — Heuristic bot. Given a state with a pending choice for the bot's
+// bot.ts – Heuristic bot. Given a state with a pending choice for the bot's
 // side, returns a legal Action. Used for vs-AI and for the autoplay test.
 // ============================================================================
 
@@ -58,8 +58,14 @@ function scoreCardForHeadline(state: GameState, cardId: string, side: Side): num
   return s;
 }
 
-function chooseCard(state: GameState, side: Side): Action {
+function chooseCard(state: GameState, side: Side): Action | null {
   const hand = state.hands[side];
+  if (!hand.length) {
+    if (state.chinaCard.holder === side && !state.chinaCard.faceDown) {
+      return { type: 'playCard', side, cardId: CHINA_CARD_ID, mode: 'ops' };
+    }
+    return null;
+  }
   // Play a scoring card if held (must be played this turn).
   const scoring = hand.find((c) => isScoring(c));
   if (scoring) return { type: 'playCard', side, cardId: scoring, mode: 'scoring' };
@@ -68,6 +74,7 @@ function chooseCard(state: GameState, side: Side): Action {
   const ownOrNeutral = hand.filter((c) => getCard(c).side !== opponent(side));
   const pool = ownOrNeutral.length ? ownOrNeutral : hand;
   const cardId = pool.sort((a, b) => getCard(b).ops - getCard(a).ops)[0];
+  if (!cardId) return null;
   const card = getCard(cardId);
   // If it's our own event with a strong effect, play as event sometimes; else ops.
   const mode: 'event' | 'ops' = card.side === side && state.options ? 'ops' : 'ops';
@@ -83,7 +90,7 @@ function chooseOp(state: GameState, side: Side, p: PendingChoice): Action | null
 
   // 0) Avoid triggering an opponent event at low DEFCON (DEFCON trap): dump it
   //    on the Space Race instead.
-  if (isOppEvent && state.defcon <= 2 && canAttemptSpace(state, side) && card.ops >= 2) {
+  if (isOppEvent && state.defcon <= 2 && canAttemptSpace(state, side, ops)) {
     return { type: 'space', side };
   }
 
@@ -101,7 +108,7 @@ function chooseOp(state: GameState, side: Side, p: PendingChoice): Action | null
   }
 
   // 2) Space race dump for any opponent event
-  if (isOppEvent && canAttemptSpace(state, side) && card.ops >= 2) {
+  if (isOppEvent && canAttemptSpace(state, side, ops)) {
     return { type: 'space', side };
   }
 
@@ -111,14 +118,14 @@ function chooseOp(state: GameState, side: Side, p: PendingChoice): Action | null
     return { type: 'realign', side, countryIds: realignTargets.slice(0, ops) };
   }
 
-  // 4) Influence placement — distribute across cheapest valid targets
+  // 4) Influence placement – distribute across cheapest valid targets
   const placements = planInfluence(state, side, ops, start);
   if (placements.length) {
     return { type: 'placeInfluence', side, placements };
   }
 
   // 5) Space race as fallback if possible
-  if (canAttemptSpace(state, side) && card.ops >= 2) {
+  if (canAttemptSpace(state, side, ops)) {
     return { type: 'space', side };
   }
 

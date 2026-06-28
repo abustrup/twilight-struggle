@@ -1,5 +1,5 @@
 // ============================================================================
-// control.ts — Influence control logic (rules 2.1.7, 6.1).
+// control.ts – Influence control logic (rules 2.1.7, 6.1).
 // ============================================================================
 
 import type { Side } from '../data/cards';

@@ -1,5 +1,5 @@
 // ============================================================================
-// effects.ts — Small pure helpers shared by the reducer and events.
+// effects.ts – Small pure helpers shared by the reducer and events.
 // ============================================================================
 
 import type { GameState } from '../state/types';
@@ -9,15 +9,15 @@ import { removeInfluence, addInfluence } from './control';
 export function gainVP(state: GameState, side: Side, amount: number): void {
   // VP track: positive = US. "side gains N VP" moves marker N toward that side.
   if (amount === 0) return;
-  if (side === 'US') state.vp += amount;
-  else state.vp -= amount;
+  const next = side === 'US' ? state.vp + amount : state.vp - amount;
+  state.vp = Math.max(-20, Math.min(20, next));
 }
 
 export function improveDefcon(state: GameState, amount: number): void {
   state.defcon = Math.min(5, state.defcon + amount);
 }
 
-// Degrade DEFCON. Returns true if DEFCON reached 1 (nuclear war) — caller must
+// Degrade DEFCON. Returns true if DEFCON reached 1 (nuclear war) – caller must
 // then end the game (rule 8.1.3): phasing player loses.
 export function degradeDefcon(state: GameState, amount: number): boolean {
   state.defcon = Math.max(1, state.defcon - amount);

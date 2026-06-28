@@ -70,13 +70,13 @@ export function Board({
   onClickCountry: (id: string) => void;
   highlight: (id: string) => boolean;
 }) {
-  const [zoom, setZoom] = useState(0.5);
+  const [zoom, setZoom] = useState(0.54);
 
   return (
     <div className="board-wrap">
       <div className="board-zoom">
-        <button onClick={() => setZoom((z) => Math.min(1.1, +(z + 0.1).toFixed(2)))}>＋</button>
-        <button onClick={() => setZoom((z) => Math.max(0.32, +(z - 0.1).toFixed(2)))}>－</button>
+        <button title="Zoom in" onClick={() => setZoom((z) => Math.min(1.1, +(z + 0.1).toFixed(2)))}>+</button>
+        <button title="Zoom out" onClick={() => setZoom((z) => Math.max(0.32, +(z - 0.1).toFixed(2)))}>−</button>
         <button onClick={() => setZoom(0.5)}>Fit</button>
         <span className="zoom-val">{Math.round(zoom * 100)}%</span>
       </div>
@@ -150,7 +150,7 @@ function HqLabel({ side, box }: { side: Side; box: { x: number; y: number; w: nu
         {teal ? 'UNITED STATES' : 'SOVIET UNION'}
       </div>
       <div className="hq-sub" style={{ background: teal ? '#0c6e6e' : '#b8420c' }}>
-        {teal ? 'HQ — THE AMERICAS' : 'HQ — EURASIA'}
+        {teal ? 'HQ – THE AMERICAS' : 'HQ – EURASIA'}
       </div>
     </div>
   );

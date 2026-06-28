@@ -1,5 +1,5 @@
 // ============================================================================
-// reducer.ts — The pure game state machine. (state, action) -> state.
+// reducer.ts – The pure game state machine. (state, action) -> state.
 // Drives headline, action rounds, turn flow, DEFCON, milops, scoring, victory.
 // ============================================================================
 
@@ -105,6 +105,15 @@ function resolveHeadlines(s: GameState): GameState {
   s.phase = 'headlineResolve';
   const us = s.headline.US!;
   const ussr = s.headline.USSR!;
+  if (us === 'defectors') {
+    s.decks.discard.push(ussr);
+    s.decks.discard.push(us);
+    log(s, 'Defectors cancels the USSR headline event.', 'US');
+    s.phase = 'actionRound';
+    s.actionRound = 1;
+    s.phasing = 'USSR';
+    return beginAction(s);
+  }
   const usVal = headlineValue(us);
   const ussrVal = headlineValue(ussr);
   let first: Side;
@@ -116,6 +125,7 @@ function resolveHeadlines(s: GameState): GameState {
   for (const side of order) {
     const cardId = side === 'US' ? us : ussr;
     applyCardEvent(s, cardId, side, /*headline*/ true);
+    disposeCard(s, cardId, true);
     if (s.over) return s;
     checkAutoVictory(s);
     if (s.over) return s;
@@ -155,6 +165,10 @@ function doPlayCard(s: GameState, a: { side: Side; cardId: string; mode: 'event'
   const isChina = a.cardId === CHINA_CARD_ID;
   if (!isChina && !s.hands[a.side].includes(a.cardId)) return s;
   if (isChina && (s.chinaCard.holder !== a.side || s.chinaCard.faceDown)) return s;
+  if (isChina && chinaPlayWouldStrandScoring(s, a.side)) {
+    log(s, 'The China Card cannot be played if it would prevent playing a scoring card.', a.side);
+    return s;
+  }
 
   const card = isChina ? { id: CHINA_CARD_ID, ops: 4, side: 'Neutral' as const, starred: false, scoring: undefined, impl: 'noop', name: 'The China Card' } : getCard(a.cardId);
 
@@ -178,7 +192,7 @@ function doPlayCard(s: GameState, a: { side: Side; cardId: string; mode: 'event'
   }
 
   // mode 'ops'
-  const baseOps = Math.max(0, card.ops + s.opMod[a.side]);
+  const baseOps = Math.max(0, card.ops + s.opMod[a.side] + (isChina ? 1 : 0));
   // remember influence at action start for adjacency rule
   (s as GameState & { _startInf?: Record<string, { us: number; ussr: number }> })._startInf = Object.fromEntries(
     Object.entries(s.countries).map(([k, v]) => [k, { ...v }]),
@@ -189,6 +203,13 @@ function doPlayCard(s: GameState, a: { side: Side; cardId: string; mode: 'event'
     meta: { cardId: a.cardId, isChina },
   };
   return s;
+}
+
+function chinaPlayWouldStrandScoring(s: GameState, side: Side): boolean {
+  const scoringInHand = s.hands[side].filter((id) => isScoring(id)).length;
+  if (scoringInHand === 0) return false;
+  const remainingOwnActions = actionRoundsForTurn(s.turn) - s.actionRound + 1;
+  return remainingOwnActions <= scoringInHand;
 }
 
 function startInf(s: GameState): Record<string, { us: number; ussr: number }> {
@@ -234,7 +255,7 @@ function doRealign(s: GameState, a: { side: Side; countryIds: string[] }): GameS
 function doSpace(s: GameState, a: { side: Side }): GameState {
   const p = s.pending;
   if (!p || p.kind !== 'opType') return s;
-  if (!canAttemptSpace(s, a.side)) { log(s, 'Cannot attempt Space Race.'); return s; }
+  if (!canAttemptSpace(s, a.side, p.amount!)) { log(s, 'Cannot attempt Space Race.'); return s; }
   attemptSpace(s, a.side, p.amount!);
   return finishOp(s, a.side);
 }
@@ -383,7 +404,7 @@ function doFinalScoring(s: GameState): GameState {
   if (winner !== 'Draw') {
     s.over = { winner, reason: `Final score ${s.vp > 0 ? '+' : ''}${s.vp} VP` };
   } else {
-    s.over = { winner: 'US', reason: 'Draw (US wins ties? no — draw)' };
+    s.over = { winner: 'US', reason: 'Draw (US wins ties? no – draw)' };
     // Represent a draw by a neutral marker:
     s.over = { winner: 'USSR', reason: 'The game ends in a draw.' };
     s.vp = 0;

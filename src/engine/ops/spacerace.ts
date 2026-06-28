@@ -1,5 +1,5 @@
 // ============================================================================
-// spacerace.ts — Space Race track (rule 6.4).
+// spacerace.ts – Space Race track (rule 6.4).
 // ============================================================================
 
 import type { GameState, SpaceBoxId } from '../state/types';
@@ -34,9 +34,18 @@ export function boxIndex(id: SpaceBoxId): number {
   return BOXES.findIndex((b) => b.id === id);
 }
 
-export function canAttemptSpace(state: GameState, side: Side): boolean {
+export function nextSpaceCost(state: GameState, side: Side): number | null {
+  const s = state.space[side];
+  const idx = boxIndex(s.box);
+  return BOXES[idx + 1]?.cost ?? null;
+}
+
+export function canAttemptSpace(state: GameState, side: Side, ops?: number): boolean {
   const s = state.space[side];
   if (s.box === 'intersolar') return false; // final box (6.4.6)
+  const cost = nextSpaceCost(state, side);
+  if (cost === null) return false;
+  if (ops !== undefined && ops < cost) return false;
   const max = s.abilities.has('twoSpaceCards') ? 2 : 1;
   return state.spaceThisTurn[side] < max;
 }
@@ -68,7 +77,10 @@ export function attemptSpace(state: GameState, side: Side, ops: number): SpaceRe
     const reachedFirst = boxIndex(state.space[otherSide].box) < idx + 1;
     const vp = reachedFirst ? target.vpFirst ?? 0 : target.vpSecond ?? 0;
     if (vp) gainVP(state, side, vp);
-    if (target.ability && reachedFirst) s.abilities.add(target.ability);
+    if (target.ability) {
+      if (reachedFirst) s.abilities.add(target.ability);
+      else state.space[otherSide].abilities.delete(target.ability);
+    }
   }
   log(state, `${side} Space Race attempt toward ${target.name}: roll ${roll} (${success ? 'success' : 'fail'})`, side, roll);
   return { roll, success, advanced: success };
