@@ -5,7 +5,7 @@ import { Tutorial } from './ui/Tutorial';
 import { playSound, isMuted, toggleMuted, onMuteChange } from './ui/sound';
 import { clearStoredSave, loadFromStorage, saveToStorage, type RestoredSave } from './ui/persistence';
 import type { Side } from './engine/data/cards';
-import { getCard, isScoring } from './engine/data/cards';
+import { getCard, isScoring, CHINA_CARD_ID } from './engine/data/cards';
 import { COUNTRIES } from './engine/data/map';
 import { controller } from './engine/core/control';
 import { canCoup } from './engine/ops/coup';
@@ -133,6 +133,8 @@ function Game({ mode, humanSide, initialState, onExit }: { mode: Mode; humanSide
   const [hover, setHover] = useState<HoverState>(null);
   const [logOpen, setLogOpen] = useState(true);
   const [tab, setTab] = useState<HandTab>('hand');
+  const [announce, setAnnounce] = useState<{ cardId: string; side: Side; key: number } | null>(null);
+  const [turnBanner, setTurnBanner] = useState<{ turn: number; key: number } | null>(null);
 
   const p = state.pending;
   const myTurn = state.awaiting === perspective && !state.over;
@@ -175,6 +177,56 @@ function Game({ mode, humanSide, initialState, onExit }: { mode: Mode; humanSide
     }
     prevSnd.current = { id: gameId, defcon: state.defcon, vp: state.vp, over: !!state.over };
   }, [state.defcon, state.vp, state.over, gameId, perspective, mode]);
+
+  // Animation cues from state transitions — most importantly, announce the card
+  // a player just played (so the opponent's moves are visibly "played", not
+  // applied instantly), and banner a new turn.
+  const prevAnim = useRef<{ state: GameState; id: number }>({ state, id: gameId });
+  const animKey = useRef(0);
+  useEffect(() => {
+    // Reseed (no cue) when a new game starts, mirroring the sound watcher — so a
+    // Restart doesn't flash the previous game's turn/card.
+    if (prevAnim.current.id !== gameId) {
+      prevAnim.current = { state, id: gameId };
+      return;
+    }
+    const prev = prevAnim.current.state;
+    prevAnim.current = { state, id: gameId };
+    if (prev === state) return;
+
+    // Banner only on a FORWARD turn advance (so undo across a turn boundary
+    // doesn't flash a backwards "Turn N").
+    if (state.turn > prev.turn && state.turn <= 10 && !state.over) {
+      setTurnBanner({ turn: state.turn, key: ++animKey.current });
+    }
+
+    // Announce the AI's (opponent's) card plays — detected from what left the
+    // AI's hand during an action round (headline picks are secret, excluded by
+    // the phase gate; China Card handled via its holder passing). The human's
+    // own plays are announced directly from the play handlers, where the exact
+    // card is known (accurate even for multi-discard events like Ask Not).
+    if (aiSide && prev.phase === 'actionRound' && (prev.awaiting ?? prev.phasing) === aiSide) {
+      const leftHand = prev.hands[aiSide].filter((id) => !state.hands[aiSide].includes(id));
+      let cardId: string | undefined = leftHand[0];
+      let side: Side = aiSide;
+      if (!cardId && prev.chinaCard.holder !== state.chinaCard.holder) {
+        cardId = CHINA_CARD_ID;
+        side = prev.chinaCard.holder;
+      }
+      if (cardId) setAnnounce({ cardId, side, key: ++animKey.current });
+    }
+  }, [state, gameId, aiSide]);
+
+  useEffect(() => {
+    if (!announce) return;
+    const t = window.setTimeout(() => setAnnounce(null), 1700);
+    return () => window.clearTimeout(t);
+  }, [announce]);
+  useEffect(() => {
+    if (!turnBanner) return;
+    const t = window.setTimeout(() => setTurnBanner(null), 1600);
+    return () => window.clearTimeout(t);
+  }, [turnBanner]);
 
   // reset interaction state whenever the pending target changes
   const key = `${state.turn}-${state.actionRound}-${state.phasing}-${p?.kind}-${(p as { meta?: { cardId?: string } })?.meta?.cardId ?? ''}`;
@@ -269,21 +321,27 @@ function Game({ mode, humanSide, initialState, onExit }: { mode: Mode; humanSide
   }
 
   // ---- play-card helpers ----
+  function announcePlay(cardId: string) {
+    setAnnounce({ cardId, side: perspective, key: ++animKey.current });
+  }
   function playEvent() {
     if (!selCard) return;
     playSound('card');
+    announcePlay(selCard);
     dispatch({ type: 'playCard', side: perspective, cardId: selCard, mode: 'event' });
     reset();
   }
   function playOps() {
     if (!selCard) return;
     playSound('card');
+    announcePlay(selCard);
     dispatch({ type: 'playCard', side: perspective, cardId: selCard, mode: 'ops' });
     reset();
   }
   function playScoring() {
     if (!selCard) return;
     playSound('card');
+    announcePlay(selCard);
     dispatch({ type: 'playCard', side: perspective, cardId: selCard, mode: 'scoring' });
     reset();
   }
@@ -432,6 +490,14 @@ function Game({ mode, humanSide, initialState, onExit }: { mode: Mode; humanSide
       </footer>
 
       {hover && <CardPreview id={hover.id} rect={hover.rect} />}
+
+      {announce && (
+        <div className="play-announce" key={announce.key}>
+          <div className={`pa-label ${announce.side === 'US' ? 'us' : 'ussr'}`}>{announce.side} plays</div>
+          <div className="pa-card"><CardFace id={announce.cardId} flippable={false} /></div>
+        </div>
+      )}
+      {turnBanner && <div className="turn-banner" key={turnBanner.key}>Turn {turnBanner.turn}</div>}
     </div>
   );
 }

@@ -111,7 +111,8 @@ export function Tracks({ state }: { state: GameState }) {
 
       <div className="sb-defcon" data-tour="defcon">
         <span className="sb-cap">DEFCON</span>
-        <div className="defcon-ladder">
+        {/* keyed by level so the ladder flashes when DEFCON shifts */}
+        <div className="defcon-ladder" key={state.defcon}>
           {[5, 4, 3, 2, 1].map((n) => (
             <span key={n} className={`dl dl-${n}${state.defcon === n ? ' on' : ''}`}>{n}</span>
           ))}
@@ -124,7 +125,8 @@ export function Tracks({ state }: { state: GameState }) {
           <div className="vp-fill ussr" style={{ width: `${ussrWidth}%` }} />
           <div className="vp-fill us" style={{ width: `${usWidth}%` }} />
           <span className="vp-tick" />
-          <span className="vp-num">{vp === 0 ? 'Tied 0' : vp > 0 ? `US +${vp}` : `USSR +${-vp}`}</span>
+          {/* keyed by value so the readout pops when VP changes */}
+          <span className="vp-num" key={vp}>{vp === 0 ? 'Tied 0' : vp > 0 ? `US +${vp}` : `USSR +${-vp}`}</span>
         </div>
       </div>
 
@@ -224,6 +226,8 @@ export function Board({
                     {inf.ussr > 0 && <span key={`s${inf.ussr}`} className={`cb-num ussr${ctrl === 'USSR' ? ' on' : ''}`}>{inf.ussr}</span>}
                     {inf.us > 0 && <span key={`a${inf.us}`} className={`cb-num us${ctrl === 'US' ? ' on' : ''}`}>{inf.us}</span>}
                   </div>
+                  {/* keyed flash: re-mounts whenever influence changes (yours or the opponent's) */}
+                  <span key={`fx${inf.us}-${inf.ussr}`} className={`cb-flash ${ctrl !== 'none' ? ctrl.toLowerCase() : ''}`} aria-hidden />
                 </div>
               );
             })}
