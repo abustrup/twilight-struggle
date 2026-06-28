@@ -59,7 +59,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   content: "";
   position: absolute;
   inset: 0;
-  background: url('/ts-map.jpg') center / cover no-repeat;
+  background: var(--map-image) center / cover no-repeat;
   opacity: 0.34;
   filter: saturate(0.82) contrast(1.08);
 }
