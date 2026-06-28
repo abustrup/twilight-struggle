@@ -152,11 +152,16 @@ export function SideBadge({ side, acting }: { side: Side; acting: boolean }) {
 
 // ---------------- Board: world-map background + positioned country boxes ----------------
 export function Board({
-  state, onClickCountry, highlight,
+  state, onClickCountry, highlight, displayCountries, selected,
 }: {
   state: GameState;
   onClickCountry: (id: string) => void;
   highlight: (id: string) => boolean;
+  // Optional override of the influence shown (e.g. live pending placements) so
+  // the board updates instantly before the move is committed to the engine.
+  displayCountries?: Record<string, { us: number; ussr: number }>;
+  // Marks a country as picked/pending (pending influence or realign selection).
+  selected?: (id: string) => boolean;
 }) {
   const [zoom, setZoom] = useState(0.58);
   const mapSrc = `${import.meta.env.BASE_URL}ts-map.jpg`;
@@ -194,15 +199,16 @@ export function Board({
               const p = LAYOUT[id];
               if (!p) return null;
               const def = COUNTRIES[id];
-              const inf = state.countries[id];
+              const inf = (displayCountries ?? state.countries)[id];
               const ctrl = controller(id, inf);
               const hl = highlight(id);
+              const sel = selected?.(id) ?? false;
               const rc = regionCode(id);
               const style = { left: p.x, top: p.y, width: NODE_W, height: NODE_H, '--field': FIELD[rc] } as CSSProperties;
               return (
                 <div
                   key={id}
-                  className={`country-box${hl ? ' hl' : ''}${def.battleground ? ' bg' : ''}${ctrl !== 'none' ? ` ctrl-${ctrl.toLowerCase()}` : ''}`}
+                  className={`country-box${hl ? ' hl' : ''}${sel ? ' sel' : ''}${def.battleground ? ' bg' : ''}${ctrl !== 'none' ? ` ctrl-${ctrl.toLowerCase()}` : ''}`}
                   style={style}
                   onClick={() => onClickCountry(id)}
                   title={`${def.name} · stability ${def.stability}${def.battleground ? ' · Battleground' : ''}`}
@@ -214,8 +220,9 @@ export function Board({
                     <span className="cb-stab">{def.stability}</span>
                   </div>
                   <div className="cb-nums">
-                    {inf.ussr > 0 && <span className={`cb-num ussr${ctrl === 'USSR' ? ' on' : ''}`}>{inf.ussr}</span>}
-                    {inf.us > 0 && <span className={`cb-num us${ctrl === 'US' ? ' on' : ''}`}>{inf.us}</span>}
+                    {/* keyed by value so the number re-mounts and replays the pop animation the instant influence changes */}
+                    {inf.ussr > 0 && <span key={`s${inf.ussr}`} className={`cb-num ussr${ctrl === 'USSR' ? ' on' : ''}`}>{inf.ussr}</span>}
+                    {inf.us > 0 && <span key={`a${inf.us}`} className={`cb-num us${ctrl === 'US' ? ' on' : ''}`}>{inf.us}</span>}
                   </div>
                 </div>
               );

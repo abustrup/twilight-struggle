@@ -131,6 +131,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   min-height: 46px;
 }
 .exit:hover { border-color: var(--accent); box-shadow: inset 0 0 0 1px rgba(216, 179, 93, 0.16); }
+.exit.snd { padding: 0 11px; font-size: 17px; line-height: 1; }
 
 /* ---------- Side badges ---------- */
 .side-badge {
@@ -338,6 +339,13 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   0%, 100% { box-shadow: 0 0 0 4px rgba(244, 216, 120, 0.92), 0 0 14px rgba(244, 216, 120, 0.55); }
   50% { box-shadow: 0 0 0 5px rgba(244, 216, 120, 1), 0 0 24px rgba(244, 216, 120, 0.9); }
 }
+/* instant tactile press feedback when you click a country */
+.country-box:active { transform: scale(0.94); }
+/* a country you've just placed influence in / selected for realignment (uncommitted) */
+.country-box.sel {
+  z-index: 7;
+  box-shadow: 0 0 0 3px var(--accent), 0 0 12px rgba(216, 179, 93, 0.7), 0 3px 8px rgba(0, 0, 0, 0.4);
+}
 
 .cb-top {
   display: grid;
@@ -371,6 +379,17 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   line-height: 1;
   letter-spacing: -1px;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7), 0 2px 4px rgba(0, 0, 0, 0.25);
+  /* the span is keyed by its value, so this replays whenever the number changes */
+  animation: numpop 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes numpop {
+  0% { transform: scale(1.7); }
+  60% { transform: scale(0.92); }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cb-num { animation: none; }
+  .country-box:active { transform: none; }
 }
 .cb-num.us { color: #1d63ad; }
 .cb-num.ussr { color: #b3271f; }
