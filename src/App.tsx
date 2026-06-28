@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { useGame, type Mode } from './ui/useGame';
 import { Tracks, Board, Hand, Log, startInf } from './ui/components';
 import { clearStoredSave, loadFromStorage, saveToStorage, type RestoredSave } from './ui/persistence';
@@ -54,8 +54,12 @@ function Menu({
   onResume: () => void;
   onPick: (m: Mode, s: Side) => void;
 }) {
+  const menuStyle = {
+    '--map-image': `url("${import.meta.env.BASE_URL}ts-map.jpg")`,
+  } as CSSProperties;
+
   return (
-    <div className="menu">
+    <div className="menu" style={menuStyle}>
       <h1>Twilight Struggle</h1>
       <p className="subtitle">The Cold War 1945–1989</p>
       <div className="menu-buttons">

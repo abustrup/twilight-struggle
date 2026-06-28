@@ -2,7 +2,10 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 
+const base = process.env.DEPLOY_TARGET === 'github-pages' ? '/twilight-struggle/' : '/';
+
 export default defineConfig({
+  base,
   plugins: [react()],
   resolve: {
     alias: {

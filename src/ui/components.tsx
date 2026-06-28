@@ -71,6 +71,7 @@ export function Board({
   highlight: (id: string) => boolean;
 }) {
   const [zoom, setZoom] = useState(0.54);
+  const mapSrc = `${import.meta.env.BASE_URL}ts-map.jpg`;
 
   return (
     <div className="board-wrap">
@@ -84,7 +85,7 @@ export function Board({
         <div className="board-canvas" style={{ width: BOARD_W * zoom, height: BOARD_H * zoom }}>
           <div className="board-inner" style={{ transform: `scale(${zoom})`, transformOrigin: 'top left', width: BOARD_W, height: BOARD_H }}>
             {/* world map background */}
-            <img src="/ts-map.jpg" width={BOARD_W} height={BOARD_H} alt="" className="map-bg" draggable={false} />
+            <img src={mapSrc} width={BOARD_W} height={BOARD_H} alt="" className="map-bg" draggable={false} />
             {/* vignette */}
             <div className="map-vignette" />
 

@@ -10,8 +10,21 @@ testable rules engine and a heuristic AI opponent.
 npm install
 npm run dev      # http://localhost:5173
 npm run build    # production bundle in dist/
+npm run build:pages
+npm run preview:pages
 npm test         # engine tests (autoplay full games + action-path tests)
 ```
+
+## GitHub Pages deployment
+
+This repo uses GitHub Actions for Pages. Every push to `main` installs
+dependencies, runs tests, typechecks, builds the Vite app with the
+`/twilight-struggle/` base path, and uploads the generated `dist/` folder as the
+Pages artifact. Do not use "Deploy from branch" for this app – that serves raw
+files and skips the Vite build.
+
+Use `npm run preview:pages` to test the production build locally at the same
+path GitHub Pages will use.
 
 ## What works (full game loop, start to finish)
 
