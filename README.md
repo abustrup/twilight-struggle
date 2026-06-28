@@ -53,12 +53,21 @@ path GitHub Pages will use.
   avoids self-inflicted DEFCON-1, dumps dangerous opponent events on the Space
   Race). Beats itself to a real conclusion ~half the time each side.
 - **Modes** – Hotseat (2 players, one device) and Play vs AI (as US or USSR).
+- **Interactive tutorial** – a guided "How to Play" mode on the real board that
+  teaches the goal/VP, influence & control, the four operations, DEFCON, and
+  scoring, with hands-on practice (take control of a country, stage a coup) using
+  the real rules engine.
 - **Local saves** – current game, mode, side, seeded state, and Space Race
   abilities persist through browser reloads.
-- **Board UI** – Claude map background with positioned interactive country
-  boxes, connection lines, control highlighting,
-  Battleground stars, US/USSR influence), tracks (Turn/Action/DEFCON/VP/MilOps/
-  Space/China), your hand, prompt-driven action flow, and an action log.
+- **Thematic board UI** – world-map background with positioned interactive country
+  boxes that show **large influence numbers** (blue US / red USSR, solid chip when
+  controlled), flags, stability and Battleground stars; a board-style status bar
+  (US/USSR emblems, Turn marker, DEFCON ladder, VP tug-of-war bar, MilOps/Space/
+  China readouts); a **hover card preview** that renders the full thematic card
+  face (ops, war period, side, event text); Hand / Discard / Removed tabs; a
+  **collapsible Game Log**; and prompt-driven action flow.
+
+See `docs/design-brief.md` for a hand-off brief to commission richer card/board art.
 
 ## Architecture
 

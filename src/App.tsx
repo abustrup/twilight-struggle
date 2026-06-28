@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { useGame, type Mode } from './ui/useGame';
-import { Tracks, Board, Hand, Log, startInf } from './ui/components';
+import { Tracks, Board, Hand, Log, SideBadge, CardFace, PileView, startInf } from './ui/components';
+import { Tutorial } from './ui/Tutorial';
 import { clearStoredSave, loadFromStorage, saveToStorage, type RestoredSave } from './ui/persistence';
 import type { Side } from './engine/data/cards';
 import { getCard, isScoring } from './engine/data/cards';
@@ -9,23 +10,30 @@ import { controller } from './engine/core/control';
 import { canCoup } from './engine/ops/coup';
 import { canRealign } from './engine/ops/realignment';
 import { canAttemptSpace } from './engine/ops/spacerace';
-import type { Action } from './engine/core/reducer';
 import type { Placement } from './engine/ops/influence';
 import type { GameState } from './engine/state/types';
 
 type OpType = 'influence' | 'coup' | 'realign' | 'space';
+type HoverState = { id: string; rect: DOMRect } | null;
+type HandTab = 'hand' | 'discard' | 'removed';
 
 export function App() {
   const [mode, setMode] = useState<Mode | null>(null);
+  const [tutorial, setTutorial] = useState(false);
   const [humanSide, setHumanSide] = useState<Side>('US');
   const [initialState, setInitialState] = useState<GameState | undefined>(undefined);
   const [storedSave, setStoredSave] = useState<RestoredSave | null>(() => {
     try { return loadFromStorage(); } catch { return null; }
   });
+
+  if (tutorial) {
+    return <Tutorial onExit={() => setTutorial(false)} />;
+  }
   if (!mode) {
     return (
       <Menu
         storedSave={storedSave}
+        onTutorial={() => setTutorial(true)}
         onResume={() => {
           if (!storedSave) return;
           setMode(storedSave.mode);
@@ -49,10 +57,12 @@ function Menu({
   storedSave,
   onResume,
   onPick,
+  onTutorial,
 }: {
   storedSave: RestoredSave | null;
   onResume: () => void;
   onPick: (m: Mode, s: Side) => void;
+  onTutorial: () => void;
 }) {
   const menuStyle = {
     '--map-image': `url("${import.meta.env.BASE_URL}ts-map.jpg")`,
@@ -63,19 +73,30 @@ function Menu({
       <h1>Twilight Struggle</h1>
       <p className="subtitle">The Cold War 1945–1989</p>
       <div className="menu-buttons">
+        <button className="primary" onClick={onTutorial}>▶ How to Play — Tutorial</button>
         {storedSave && <button onClick={onResume}>Continue Saved Game</button>}
         <button onClick={() => onPick('hotseat', 'US')}>Hotseat (2 players)</button>
         <button onClick={() => onPick('vsAI', 'US')}>Play vs AI – as US</button>
         <button onClick={() => onPick('vsAI', 'USSR')}>Play vs AI – as USSR</button>
       </div>
       <div className="menu-note">
-        A working build of the core board game: full map, the 110-card deck,
-        Influence / Coups / Realignments / Space Race, DEFCON, Military Ops,
-        region scoring, headline + action rounds, local saves, AI play, and
-        10-turn victory. Card events are registered across Early, Mid, Late, and
-        Optional cards, with deterministic target choices where the UI does not
-        yet ask for a specific target.
+        New to the game? Start with the <b>Tutorial</b> — it walks you through the
+        board, influence and control, the four operations, DEFCON, and how to win,
+        with hands-on practice. Otherwise jump straight into Hotseat or a match
+        against the AI.
       </div>
+    </div>
+  );
+}
+
+// Floating thematic card face that follows the hovered card.
+export function CardPreview({ id, rect }: { id: string; rect: DOMRect }) {
+  const W = 272;
+  const left = Math.max(10, Math.min(window.innerWidth - W - 10, rect.left + rect.width / 2 - W / 2));
+  const bottom = Math.max(10, window.innerHeight - rect.top + 12);
+  return (
+    <div className="card-preview" style={{ left, bottom, width: W }}>
+      <CardFace id={id} className="preview" />
     </div>
   );
 }
@@ -87,6 +108,9 @@ function Game({ mode, humanSide, initialState, onExit }: { mode: Mode; humanSide
   const [opType, setOpType] = useState<OpType | null>(null);
   const [placements, setPlacements] = useState<Placement[]>([]);
   const [realignSel, setRealignSel] = useState<string[]>([]);
+  const [hover, setHover] = useState<HoverState>(null);
+  const [logOpen, setLogOpen] = useState(true);
+  const [tab, setTab] = useState<HandTab>('hand');
 
   const p = state.pending;
   const myTurn = state.awaiting === perspective && !state.over;
@@ -195,11 +219,15 @@ function Game({ mode, humanSide, initialState, onExit }: { mode: Mode; humanSide
     reset();
   }
 
+  const onHover = (id: string | null, rect: DOMRect | null) => setHover(id && rect ? { id, rect } : null);
+
   return (
     <div className="app">
       <header className="app-header">
         <button className="exit" onClick={onExit}>← Menu</button>
+        <SideBadge side="US" acting={state.awaiting === 'US' && !state.over} />
         <Tracks state={state} />
+        <SideBadge side="USSR" acting={state.awaiting === 'USSR' && !state.over} />
         <button className="exit" onClick={() => { clearStoredSave(); restart(); }}>↻ Restart</button>
       </header>
 
@@ -207,7 +235,7 @@ function Game({ mode, humanSide, initialState, onExit }: { mode: Mode; humanSide
         <Board state={state} onClickCountry={onCountry} highlight={highlight} />
 
         <aside className="sidebar">
-          <div className="panel">
+          <div className="panel" data-tour="panel">
             {state.over ? (
               <>
                 <h2>Game Over</h2>
@@ -219,24 +247,27 @@ function Game({ mode, humanSide, initialState, onExit }: { mode: Mode; humanSide
             ) : p?.kind === 'headline' ? (
               <>
                 <h3>Headline Phase</h3>
-                <p className="hint">{perspective}: choose a headline card from your hand.</p>
+                <p className="hint">{perspective}: choose a headline card from your hand. Hover a card to see its full effect.</p>
               </>
             ) : p?.kind === 'playCard' ? (
               <>
                 <h3>{perspective}'s Action Round</h3>
-                <p className="hint">{selCard ? `Selected: ${selCard === 'thechinacard' ? 'The China Card' : getCard(selCard).name}` : 'Pick a card from your hand.'}</p>
+                <p className="hint">{selCard ? 'Choose how to play it:' : 'Pick a card from your hand. Hover any card to read it.'}</p>
                 {selCard && (
-                  <div className="modes">
-                    {isScoring(selCard) ? (
-                      <button onClick={playScoring}>Play Scoring</button>
-                    ) : (
-                      <>
-                        <button onClick={playEvent}>Play as Event</button>
-                        <button onClick={playOps}>Play for Ops</button>
-                      </>
-                    )}
-                    <button onClick={() => setSelCard(null)}>Cancel</button>
-                  </div>
+                  <>
+                    <CardFace id={selCard} className="panel-card" />
+                    <div className="modes">
+                      {isScoring(selCard) ? (
+                        <button onClick={playScoring}>Play Scoring</button>
+                      ) : (
+                        <>
+                          <button onClick={playEvent}>Play as Event</button>
+                          <button onClick={playOps}>Play for Ops</button>
+                        </>
+                      )}
+                      <button onClick={() => setSelCard(null)}>Cancel</button>
+                    </div>
+                  </>
                 )}
               </>
             ) : p?.kind === 'opType' ? (
@@ -275,18 +306,33 @@ function Game({ mode, humanSide, initialState, onExit }: { mode: Mode; humanSide
               <p className="hint">…</p>
             )}
           </div>
-          <Log state={state} />
+
+          <div className={`log-drawer${logOpen ? ' open' : ''}`}>
+            <button className="log-head" onClick={() => setLogOpen((o) => !o)} aria-expanded={logOpen}>
+              <span>Game Log</span>
+              <span className="log-chevron">{logOpen ? '▾' : '▸'}</span>
+            </button>
+            {logOpen && <Log state={state} />}
+          </div>
         </aside>
       </main>
 
       <footer className="hand-area">
-        <div className="hand-label">
-          {mode === 'vsAI' ? `Your hand (${perspective})` : `Hand – ${perspective}`}
+        <div className="hand-tabs">
+          <button className={tab === 'hand' ? 'on' : ''} onClick={() => setTab('hand')}>
+            {mode === 'vsAI' ? `Your Hand (${perspective})` : `Hand – ${perspective}`}
+          </button>
+          <button className={tab === 'discard' ? 'on' : ''} onClick={() => setTab('discard')}>Discard ({state.decks.discard.length})</button>
+          <button className={tab === 'removed' ? 'on' : ''} onClick={() => setTab('removed')}>Removed ({state.decks.removed.length})</button>
           {aiSide && state.awaiting === aiSide && <span className="thinking"> · AI thinking…</span>}
-          {mode === 'hotseat' && !state.over && <span className="thinking"> · (pass device to {perspective})</span>}
+          {mode === 'hotseat' && !state.over && tab === 'hand' && <span className="thinking"> · pass device to {perspective}</span>}
         </div>
-        <Hand state={state} perspective={perspective} onClickCard={onCard} selectedId={selCard} />
+        {tab === 'hand' && <Hand state={state} perspective={perspective} onClickCard={onCard} selectedId={selCard} onHover={onHover} />}
+        {tab === 'discard' && <PileView ids={[...state.decks.discard].reverse()} empty="The discard pile is empty." onHover={onHover} />}
+        {tab === 'removed' && <PileView ids={state.decks.removed} empty="No cards removed from the game yet." onHover={onHover} />}
       </footer>
+
+      {hover && <CardPreview id={hover.id} rect={hover.rect} />}
     </div>
   );
 }
