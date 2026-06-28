@@ -8,8 +8,14 @@ board game.
 
 The app already consumes one image: `public/ts-map.jpg` (the world map
 background). Everything else (country boxes, cards, status bar, emblems) is drawn
-with CSS/SVG. Drop replacement art into `public/` and wire it in
-`src/ui/components.tsx` / `src/styles.css`.
+with CSS/SVG.
+
+**Card illustrations are zero-code to add:** the thematic `CardFace` already
+renders `public/cards/<id>.png` (512×512), falling back to a geometric duotone
+motif until the file exists. So you can ship the 110 illustrations incrementally
+just by dropping PNGs into `public/cards/` — no code changes, nothing breaks.
+Ready-to-paste per-card filenames and prompts live in
+[`docs/cards-art.md`](cards-art.md) / [`docs/cards-art.json`](cards-art.json).
 
 ## Art direction
 
@@ -67,8 +73,9 @@ coastlines, or the box positions will need re-tuning).
 
 ## Where it plugs in
 
-- Card art → `CardFace` in `src/ui/components.tsx` (the `.cf-art` block currently
-  renders an emblem; swap in `<img src={…cardId.png}>`).
+- Card art → drop `public/cards/<id>.png` (512×512). `CardFace` in
+  `src/ui/components.tsx` already loads it (`.tsf-img` slot) with a motif
+  fallback — no code change needed.
 - Emblems → the `Emblem` component in `src/ui/components.tsx`.
-- Menu key art → `.menu::before` background in `src/styles.css`.
-- Board map → `public/ts-map.jpg`.
+- Menu key art → `.menu::before` / `.menu::after` background in `src/styles.css`.
+- Board map → `public/ts-map.jpg` (keep 2435×1536).

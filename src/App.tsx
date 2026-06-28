@@ -96,7 +96,8 @@ export function CardPreview({ id, rect }: { id: string; rect: DOMRect }) {
   const bottom = Math.max(10, window.innerHeight - rect.top + 12);
   return (
     <div className="card-preview" style={{ left, bottom, width: W }}>
-      <CardFace id={id} className="preview" />
+      <CardFace key={id} id={id} className="preview" flippable={false} />
+      <div className="card-preview-rules">{getCard(id).text}</div>
     </div>
   );
 }
@@ -247,15 +248,15 @@ function Game({ mode, humanSide, initialState, onExit }: { mode: Mode; humanSide
             ) : p?.kind === 'headline' ? (
               <>
                 <h3>Headline Phase</h3>
-                <p className="hint">{perspective}: choose a headline card from your hand. Hover a card to see its full effect.</p>
+                <p className="hint">{perspective}: choose a headline card from your hand. Hover a card to preview it.</p>
               </>
             ) : p?.kind === 'playCard' ? (
               <>
                 <h3>{perspective}'s Action Round</h3>
-                <p className="hint">{selCard ? 'Choose how to play it:' : 'Pick a card from your hand. Hover any card to read it.'}</p>
+                <p className="hint">{selCard ? 'Choose how to play it — click the card to flip for its rules.' : 'Pick a card from your hand. Hover any card to preview it.'}</p>
                 {selCard && (
                   <>
-                    <CardFace id={selCard} className="panel-card" />
+                    <CardFace key={selCard} id={selCard} className="panel-card" />
                     <div className="modes">
                       {isScoring(selCard) ? (
                         <button onClick={playScoring}>Play Scoring</button>
